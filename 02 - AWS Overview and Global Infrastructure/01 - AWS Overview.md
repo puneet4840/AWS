@@ -79,3 +79,11 @@ Example: Ek e-commerce site ka user data, orders, aur payments table format mein
 Ye DevOps engineers ka favourite hai. Isme tumhe server manage hi nahi karna. Tum bas code likho, aur AWS usko tabhi chalayega jab zaroorat hogi.
 
 Example: Jaise hi koi user apni profile photo upload kare, uska size chota (thumbnail) ho jaye. Is kaam ke liye 24 ghante server chalane ki zaroorat nahi hai. Lambda sirf us 2-second ke liye chalega aur band ho jayega. Paise bhi sirf un 2 seconds ke lagenge.
+
+<br>
+
+**5 - VPC**:
+
+VPC (Virtual Private Cloud) AWS ke andar tumhara apna private network hota hai.
+
+VPC ka use AWS mein ek secure aur private network banane ke liye hota hai jahan tum apni application ko safely aur controlled way mein run karte ho.
