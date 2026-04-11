@@ -41,3 +41,41 @@ Cloud ka matlab hai "Someone else's computer." Tum Amazon, Microsoft, ya Google 
 
 - Paisa (Operational Expense - OpEx): Shuruat mein 0 rupaye kharch hote hain. Jitne ghante server chalaya, utne ka bill bhara. Isse Pay-as-you-go model kehte hain.
 - Maintenance: Server ki physical security, bijli, aur hardware repair ki tension AWS/Azure ki hai. Tumhe bas apna application chalane se matlab hai.
+
+
+<br>
+<br>
+
+### AWS Ki Main Services (The Big Four)
+
+AWS mein 200 se zyada services hain, lekin agar tumne ye 4 samajh liye, toh tumne 80% game jeet liya:
+
+**1 - EC2 (Elastic Compute Cloud) – "Kiraye ka Computer"**:
+
+Ye AWS ki sabse popular service hai. Ye basically ek virtual machine (VM) hai. Tum decide karte ho ki tumhe kitni RAM chahiye, kitna CPU chahiye, aur kaunsa OS (Windows ya Linux).
+
+Example: Tumhe ek Python script 24/7 chalani hai. Tum apne laptop pe nahi chala sakte kyunki laptop band ho jayega. Tumne AWS pe ek EC2 instance banaya aur script wahan daal di. Ab wo duniya ke kisi bhi kone se access ho sakti hai.
+
+<br>
+
+**2 - S3 (Simple Storage Service) – "Unlimited Google Drive"**:
+
+S3 ek storage service hai jahan tum kitna bhi data (photos, videos, logs) daal sakte ho. Ye kabhi full nahi hota.
+
+Example: Netflix apni saari movies aur thumbnails S3 mein store karta hai. Jab tum "Stranger Things" click karte ho, toh wo file S3 se fetch hoti hai.
+
+<br>
+
+**3 - RDS (Relational Database Service) – "Managed Database"**:
+
+Database setup karna sar-dard hai (backups, updates, security). RDS ye sab khud handle karta hai. Tum bas MySQL, PostgreSQL, ya Oracle select karo aur kaam shuru karo.
+
+Example: Ek e-commerce site ka user data, orders, aur payments table format mein store karne ke liye RDS best hai.
+
+<br>
+
+**4 - Lambda – "Serverless Magic"**:
+
+Ye DevOps engineers ka favourite hai. Isme tumhe server manage hi nahi karna. Tum bas code likho, aur AWS usko tabhi chalayega jab zaroorat hogi.
+
+Example: Jaise hi koi user apni profile photo upload kare, uska size chota (thumbnail) ho jaye. Is kaam ke liye 24 ghante server chalane ki zaroorat nahi hai. Lambda sirf us 2-second ke liye chalega aur band ho jayega. Paise bhi sirf un 2 seconds ke lagenge.
