@@ -1,6 +1,53 @@
 # AWS Overview
 
+<br>
+
+### What is Cloud Computing?
+
+Cloud Computing is the on demand delivery of computing resources, such as Storage, Servers, Networking, Databases, Software, Analytics and Intelligence, etc, over the internet.
+
+<br>
+<br>
+
+### What is Cloud?
+
+_Accessing a Data Center remotely is called cloud._
+
+<br>
+<br>
+
+### Why do we need cloud?
+
+There are multiple reasons to choose cloud:
+
+- **TO save cost**:
+  - If you want to run a website, instead of buying and maintaining your own server (which can be expensive and require dedicated IT staff), you can host your website on a cloud service and pay only for what you use.
+ 
+- **For Scalability and Flexibility**:
+  - Imagine you run an online store that suddenly becomes very popular during a holiday sale. With traditional servers, you’d need to buy extra hardware to handle the increased traffic. With cloud computing, you can quickly scale up your resources (more servers, more storage) to handle the surge and scale them down when the traffic drops.
+
+We know that if we have an application we need a server to expose that application to outside world.
+
+- **What is Server?**
+
+  Server is a remote computer which has Local Storage, CPU and RAM. These servers are used to run application.
+
+So, 10 or 15 years back companies like Google, Yahoo procure the servers from vendors like IBM, HP, etc. These companies used to procure 100's of servers from vendors. To manage these servers companies had particular System Administrators which mangage these server. 
+
+After few years back companies have their own servers. Procuring the servers from vendors used to seems expensive. So companies decided get their own servers.
+
+- Example of Google:
+
+  Google installed 100's or 1000's server inside the racks in its server rooms. These servers are connected through High Speed cables, Switches or Routers. This complete setup is called **_Data Center_**.
+
+<br>
+<br>
+
+### What is AWS
+
 Amazon Web Services (AWS) ek cloud computing platform hai jo Amazon ne banaya hai.
+
+AWS is a cloud provider which provides on demand delivery of computing resourcescloud computing resources. 
 
 Simple language mein:
 
@@ -21,6 +68,8 @@ Pehle companies ko apna software chalane ke liye khud ke servers kharidne padte 
 
 **On-Premises**:
 
+On-premises ka matlab hai khud ka data center.
+
 Pehle ke time par jab cloud ka concept nahi tha to companies apn application run karne ke liye, khud ka data centre banati thi, aur us data centre ko maintain karna padta tha. Ye on-premises aaj bhi use hota hai jab company ko khud ka data store karna ho.
 
 On-premises ka matlab hai ki tumhari company ke paas apna khud ka physical data center hai. Servers, wires, AC, security guards—sab kuch tumhari building ke andar hai.
@@ -34,6 +83,8 @@ Cooling, electricity, maintenance sab tumhari zimmedari.
 <br>
 
 **Cloud**:
+
+Cloud ka matlab hai remote data center ko internet par access karna.
 
 Cloud ka matlab hai ki tum cloud provider se rent par service kharidte ho aur unko use karte ho.
 
