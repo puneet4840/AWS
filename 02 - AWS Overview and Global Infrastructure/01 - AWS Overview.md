@@ -47,7 +47,7 @@ After few years back companies have their own servers. Procuring the servers fro
 
 Amazon Web Services (AWS) ek cloud computing platform hai jo Amazon ne banaya hai.
 
-AWS is a cloud provider which provides on demand delivery of computing resourcescloud computing resources. 
+AWS is a cloud service provider which provides on demand delivery of computing resources. 
 
 Simple language mein:
 
