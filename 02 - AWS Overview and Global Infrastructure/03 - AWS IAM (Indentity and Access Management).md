@@ -33,8 +33,8 @@ Simple language mein:
 - IAM User = “AWS account ke andar ek alag login account”.
 
 AWS mein user 2 type ke hote hain:
-- Root User.
-- IAM User.
+- Root User: Owner of AWS Account.
+- IAM User: Individual user, services or applications.
 
 Jab tum ek aws account create karte ho to by default ek root user create hoke milta hai jiske paas sabhi permission aur access hoti hain.
 
