@@ -33,14 +33,23 @@ Simple language mein:
 - IAM User = “AWS account ke andar ek alag login account”.
 
 AWS mein user 2 type ke hote hain:
-- Root User: Owner of AWS Account.
-- IAM User: Individual user, services or applications.
+- **Root User**: Owner of AWS Account.
+- **IAM User**: Individual user, services or applications.
 
 Jab tum ek aws account create karte ho to by default ek root user create hoke milta hai jiske paas sabhi permission aur access hoti hain.
 
 Lekin jab tum alag se user create karte ho IAM ke ander vo IAM user hota hai. Is user ko hum khud se permission dete hain.
 
 Best practice yehi hoti hai ki tum root user ko use mat karo, simple ek IAM user banao, usko permissions do aur usko use karo. Kyuki root user ke paas sabhi access hote hain agar kisi ko root user ke credential pta lag gaye to vo tumhare aws account ko hack kar sakta hai.
+
+
+Root user par koi bhi IAM policy apply nahi ho sakti aur na hi isko permissions ko contorl kar sakte hain.
+
+IAM user par policy apply hoti hain aur isko permissions ko control bhi kiya ja sakta hai.
+
+Root user ko day-to-day operations ke liye use karna sahi nhi hota hai. 
+
+IAM user ko day-to-day operations ke liye use kar sakte hain.
 
 <br>
 
