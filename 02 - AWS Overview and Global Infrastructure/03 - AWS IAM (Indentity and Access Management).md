@@ -310,7 +310,7 @@ Ye ek array hota hai jiske ander rules likhe jaate hain. Iske ander multiple rul
 - Debugging aur readability ke liye use hota hai.
 
 
-**Effect (Decision)**:
+**4 - Effect (Decision)**:
 
 ```
 "Effect": "Allow"
@@ -322,7 +322,7 @@ Do hi options:
 
 Iska matlab hai ki kya rule ko allow ya deny karna hai?
 
-**Action (What you can do)**:
+**5 - Action (What you can do)**:
 
 Yeh define karta hai ki kaunsa operation allowed hai.
 
@@ -337,7 +337,7 @@ Wildcard use:
 All S3 actions allowed.
 
 
-**Resource (Kahan apply hoga)**:
+**6 - Resource (Kahan apply hoga)**:
 
 Yeh define karta hai kis particular resource par action allowed hai rule.
 
@@ -347,7 +347,7 @@ Matlab:
 
 Jaise Azure mein resource id hoti hai resource ko identify karne ke liye vaise ki aws mein ARN hota resource ko identify karne ke liye.
 
-**ARN**:
+**7 - ARN**:
 
 ARN: Amazon Resource Name.
 
@@ -365,11 +365,11 @@ arn:aws:s3:::my-bucket/file.txt
 
 Explanation:
 
-1. arn (prefix):
+7.1. arn (prefix):
 - Har ARN arn se start hota hai.
 - Yeh batata hai ki yeh Amazon Resource Name hai.
 
-2. partition:
+7.2. partition:
 
 AWS ka environment batata hai.
 
@@ -381,7 +381,7 @@ Common values:
 Insight:
 - Yeh AWS ke internal isolation boundaries ko represent karta hai.
 
-3. service:
+7.3. service:
 
 Ye batata hai ki kaunsa AWS service hai.
 
@@ -391,7 +391,7 @@ Examples:
 - lambda.
 - iam.
 
-4. region:
+7.4. region:
 
 Ye batata hai ki resource kis region mein hai.
 
@@ -402,7 +402,7 @@ Examples:
 ⚠️ Important:
 - S3 aur IAM jaise kuch services global hoti hain → region blank ho sakta hai.
 
-5. account-id:
+7.5. account-id:
 - AWS account ka unique ID.
 
 Example:
@@ -411,7 +411,7 @@ Example:
 ```
 - Yeh batata hai resource kis account ka hai.
 
-6. resource:
+7.6. resource:
 - Ye vo particular resource hota hai.
 
 <br>
@@ -437,5 +437,185 @@ IAM roles ke liye
 
 <br>
 <br>
+<br>
 
 ### Roles (IAM Roles)
+
+Role ek temporary identity hoti hai.
+
+IAM Role ek aisa identity object hai jiske paas permissions hoti hain, lekin uske paas permanent credentials nahi hote.
+
+Matlab:
+- Role khud login nahi karta — koi us (user/service) role ko “assume” karta hai (temporary identity le leta hai). Assume karne ka matlab use karna.
+
+<br>
+
+**IAM Role ke 2 main components**:
+
+**1. Permission Policy**:
+
+Yeh define karti hai ki, Role kya kar sakta hai.
+
+Example:
+- S3 read kare
+- EC2 start kare
+- Lambda invoke kare
+
+<br>
+
+**2. Trust Policy**:
+
+Yeh define karti hai, Kaun role ko assume kar sakta hai.
+
+Trust policy ka matlab hai ki kon (user/service) role ko use kar sakta hai.
+
+Trust Policy Example:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+Breakdown:
+- ```Principal``` → kaun assume karega. Principal ka matlab hai ki kon is role ko assume karega.
+- ```Service```: ec2.amazonaws.com → EC2 instances.
+- ```Action```: sts:AssumeRole → role assume karna.
+
+<br>
+
+**Role Assume karna kya hota hai?**:
+
+Assume Role ka matlab hai temporary identity lena with specific permissions.
+
+Matlab:
+- Tum apni original identity se switch karke ek temporary role-based identity use karte ho.
+
+Jab koi entity (user/service) role use karna chahti hai:
+- AWS STS (Security Token Service) ko request jati hai.
+- STS temporary credentials generate karta hai.
+- User/service un credentials se kaam karta hai.
+
+
+**Actual AWS Flow**:
+
+Chalo ek real scenario lete hain: IAM User wants to access S3 using a Role.
+
+Tumne already ek iam role bana diya hai aur ec2 ko role assume karne ki trust policy bhi bana di hai.
+
+**Step 1**: User request karta hai:
+
+User bolta hai:
+```
+“Mujhe is role ko assume karna hai”.
+```
+Yeh call hoti hai:
+```
+sts:AssumeRole
+```
+
+**Step 2**: AWS Trust Policy check karta hai:
+
+AWS check karega:
+```
+“Kya yeh user is role ko assume karne ke liye allowed hai?”
+```
+
+Example trust policy:
+```
+{
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::123456789012:user/DevUser"
+  },
+  "Action": "sts:AssumeRole"
+}
+```
+- Agar match ho gaya → next step pe jayga.
+- Agar Nahi → ❌ Access denied.
+
+**Step 3**: AWS STS activate hota hai:
+
+Yahan kaam karti hai ```AWS Security Token Service```.
+
+AWS STS ek cloud security managed service hai jo temporary credentials issue karti hai.
+
+STS ka kaam:
+```
+Temporary credentials generate karna
+```
+
+**Step 4**: STS credentials generate karta hai:
+
+STS tumhe deta hai:
+- Access Key ID.
+- Secret Access Key.
+- Session Token.
+
+STS tumhare user ya service ko ye token assign karta hai.
+
+**Step 5**: Temporary session create hota hai:
+
+STS ek session banata hai:
+- Validity: 15 min → 12 hours (configurable).
+- Default: ~1 hour.
+
+**Step 6**: User ab role ban jata hai (temporarily):
+
+Ab user ki identity change ho jaati hai:
+
+Before:
+```
+IAM User
+```
+After:
+```
+Assumed Role Identity
+```
+
+**Step 7**: User AWS services ko call karta hai:
+
+Ab jab request jaati hai:
+
+AWS internally check karta hai:
+- Kya credentials valid hain?
+- Kya session expired nahi hua?
+- Kya role policy allow karti hai?
+- Kya koi explicit deny hai?
+
+
+**Complete Flow**:
+
+Example: EC2 instance accessing S3
+
+EC2 instance S3 ko access karna chta hai.
+
+Step 1:
+- Tum EC2 ke liye IAM Role banate ho.
+
+Step 2:
+- Trust policy allow karti hai:
+  - EC2 role assume kare.
+ 
+Step 3:
+- Role EC2 instance ko attach kar dete ho.
+
+Step 4:
+- EC2 instance automatically STS se credentials leta hai.
+
+Step 5:
+- EC2 S3 ko call karta hai using role permissions.
+
+<br>
+<br>
+<br>
+
+### 
