@@ -129,3 +129,98 @@ To tum IAM user banaoge:
 
 Ab app secure tarike se AWS se baat karegi.
 
+<br>
+<br>
+
+### Groups
+
+AWS IAM mein group ek logical container hota hai jisme multiple users ko ek saath manage kiya jata hai. manage karne ka matlab users ki permissions ko ek saath manage karna.
+
+Simple words mein:
+- Group = users ka collection jinke permissions same hote hain.
+
+<br>
+
+**Real-Life Analogy**:
+
+Socho tumhari ek company hai:
+- Kuch log Developers hain.
+- Kuch log Testers hain.
+- Kuch log Admins hain.
+
+Ab agar tum har ek user ko alag-alag permission doge to bahut messy ho jayega.
+
+Isliye tum groups banate ho, jaise:
+- ```Developers Group```.
+- ```Testers Group```.
+- ```Admins Group```.
+
+Aur har group ko ek specific permission de dete ho.
+
+In groups mein tum users ko add karte ho, jisse sabhi users ko same type ki permissions mil jati hain.
+
+<br>
+
+**IAM Group ka kaam kya hai?**
+
+IAM Group ka main purpose:
+- Permission management easy banana: Har user ko alag-alag permissions na deke sabhi ki group mein ek saath permission dena.
+- Centralized access control: 
+- Scalability improve karna: Group mein jitne bhi users add karna.
+
+Ek baar group pe policy laga do → sab users automatically same access le lenge.
+
+<br>
+
+**Example (Practical Scenario 💻)**:
+
+Scenario:
+
+Tum ek DevOps engineer ho.
+
+Company mein 3 developers hain:
+- Rahul
+- Amit
+- Neha
+
+Step 1: Group create karo:
+```
+Group Name: Developers
+```
+
+Step 2: Policy attach karo:
+
+Example policy:
+- EC2 start/stop kar sakte hain.
+- S3 read access.
+
+Policy Example:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "s3:GetObject"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+Ye policy agar group pe attach hogi, to sab users ko ye permissions mil jayengi.
+
+Step 3: Users add karo:
+```
+Rahul → Developers
+Amit → Developers
+Neha → Developers
+```
+
+Result:
+- Teenon ko same permissions mil gayi.
+- Alag-alag configure karne ki zarurat nahi.
+
