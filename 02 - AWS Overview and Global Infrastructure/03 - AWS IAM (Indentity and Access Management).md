@@ -224,3 +224,218 @@ Result:
 - Teenon ko same permissions mil gayi.
 - Alag-alag configure karne ki zarurat nahi.
 
+<br>
+<br>
+
+### Policies (IAM Policies)
+
+IAM Policy ek JSON document hota hai jiske ander access permissions ko json form mein likha jata hai.
+
+Matlab kaun user, kya kya action kar sakta hai aur kis resource par kar sakta hai.
+
+Matlab:
+- Kaun? → User / Role / Group.
+- Kya? → Action (like S3 read, EC2 start).
+- Kis par? → Resource (bucket, instance, etc.).
+- Kab allow ya deny? → Conditions.
+
+Matlab AWS jab bhi koi request receive karta hai (jaise kisi user ne S3 se file read karni hai), toh AWS backend mein check karta hai:
+- “Kya is user ke paas is action ke liye permission hai ya nahi?”
+
+To is IAM policy ke basis par dekhata hai ki permission hai ya nhi.
+
+<br>
+
+**IAM Policy ka Structure (JSON)**:
+
+Ek basic IAM Policy kuch aisi dikhti hai:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket/*"
+    }
+  ]
+}
+```
+
+OR
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ],
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": "192.168.1.1/32"
+        }
+      }
+    }
+  ]
+}
+```
+
+Ab isko line-by-line breakdown karte hain 👇
+
+**1 - Version**:
+
+Yeh policy language ka version hai. AWS ne ab tak sirf ek stable version use kiya hai: "2012-10-17".
+
+Yeh backward compatibility ke liye hai — AWS future mein syntax change kare toh yeh version help karega.
+
+
+**2 - Statement**:
+
+Ye ek array hota hai jiske ander rules likhe jaate hain. Iske ander multiple rules bhi sakte hain.
+
+
+**3 - Sid (Statement ID)**:
+
+- Optional hota hai.
+- Debugging aur readability ke liye use hota hai.
+
+
+**Effect (Decision)**:
+
+```
+"Effect": "Allow"
+```
+
+Do hi options:
+- Allow
+- Deny
+
+Iska matlab hai ki kya rule ko allow ya deny karna hai?
+
+**Action (What you can do)**:
+
+Yeh define karta hai ki kaunsa operation allowed hai.
+
+```
+"Action": "s3:GetObject"
+```
+
+Wildcard use:
+```
+"s3:*"
+```
+All S3 actions allowed.
+
+
+**Resource (Kahan apply hoga)**:
+
+Yeh define karta hai kis particular resource par action allowed hai rule.
+
+Matlab:
+- AWS ke andar har resource (S3 bucket, EC2 instance, IAM role, etc.) ka ek unique “address” hota hai — usi ko ARN bolte hain.
+
+
+Jaise Azure mein resource id hoti hai resource ko identify karne ke liye vaise ki aws mein ARN hota resource ko identify karne ke liye.
+
+**ARN**:
+
+ARN: Amazon Resource Name.
+
+Ye ek unique identifier hota hai jo AWS ke har resource ko globally identify karta hai.
+
+Format:
+```
+arn:partition:service:region:account-id:resource
+```
+
+Example:
+```
+arn:aws:s3:::my-bucket/file.txt
+```
+
+Explanation:
+
+1. arn (prefix):
+- Har ARN arn se start hota hai.
+- Yeh batata hai ki yeh Amazon Resource Name hai.
+
+2. partition:
+
+AWS ka environment batata hai.
+
+Common values:
+- ```aws``` → normal AWS (most common)
+- ```aws-cn``` → China region
+- ```aws-us-gov``` → GovCloud
+
+Insight:
+- Yeh AWS ke internal isolation boundaries ko represent karta hai.
+
+3. service:
+
+Ye batata hai ki kaunsa AWS service hai.
+
+Examples:
+- s3.
+- ec2.
+- lambda.
+- iam.
+
+4. region:
+
+Ye batata hai ki resource kis region mein hai.
+
+Examples:
+- ```us-east-1```.
+- ```ap-south-1```.
+
+⚠️ Important:
+- S3 aur IAM jaise kuch services global hoti hain → region blank ho sakta hai.
+
+5. account-id:
+- AWS account ka unique ID.
+
+Example:
+```
+123456789012
+```
+- Yeh batata hai resource kis account ka hai.
+
+6. resource:
+- Ye vo particular resource hota hai.
+
+<br>
+
+Different ARN Formats:
+
+1. Slash format:
+```
+arn:aws:ec2:ap-south-1:123456789012:instance/i-1234567890abcdef
+```
+EC2 instance ke liye
+
+2. Colon format
+```
+arn:aws:lambda:ap-south-1:123456789012:function:my-function
+```
+
+3. Mixed format
+```
+arn:aws:iam::123456789012:role/MyRole
+```
+IAM roles ke liye
+
+<br>
+<br>
+
+### Roles (IAM Roles)
