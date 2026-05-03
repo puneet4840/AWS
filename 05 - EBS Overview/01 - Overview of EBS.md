@@ -162,3 +162,95 @@ Ye further aur divided hote hain.
 <br>
 
 <img src="https://drive.google.com/uc?export=view&id=1OhMMSkJn5Pp2MFk0vNtk5JtBXPSLkJ2c" width="800" height="400">
+
+<br>
+<br>
+
+### gp3 and gp2
+
+**gp2 (Old Generation)**:
+- gp2 volume AWS ki old generation volume hai.
+
+- Burst Balance: "Burst Balance" gp2 volumes (SSD) ke liye ek temporary speed boost system hai. Ye ek tarah se credits hote hain jo jarurat ke time par use hote hain.
+  - Har gp2 volume ki ek fixed baseline speed hoti hai jo uske size par depend karti hai (3 IOPS per GB).
+  - Jab aapka server shaant hota hai aur apni baseline speed se kam kaam kar raha hota hai, to "credits" (paise) jama hote rehte hain.
+  - Jab achanak heavy load aata hai (jaise koi application start hona), to volume baseline se zyada speed (up to 3,000 IOPS) deta hai. Is extra speed ke liye "credits" jama hue credits kharch hote hain.
+  - Burst Balance Percentage: AWS console mein ye 0-100% ke beech dikhta hai.
+  - 100%: Credits poore hain, aap full burst (3,000 IOPS) use kar sakte hain.
+  - 0%: Credtis kharch ho gaye hai. Ab aapka volume slow ho jayega aur sirf apni baseline speed par hi chalega.
+  
+- Performance tied to Size: Ismein IOPS (Input/Output Operations Per Second) volume ke size par depend karti hai. Har 1 GB par aapko 3 IOPS milte hain. Iska matlab agar aapko zyada speed chahiye, to aapko majbooran bada storage size lena padega.
+  - Example: Agar aapko 10,000 IOPS chahiye, to aapko kam se kam 3.33 TiB ka volume lena hoga, chahe aapko sirf 500 GB storage ki zaroorat ho. Isse paise ki barbaadi hoti hai.
+ 
+- Cost: Ye gp3 ke muqable lagbhag 20% mehenga padta hai.
+
+<br>
+
+**gp3 (Latest Generation)**:
+- gp3 volume AWS ki latest generation volume hai.
+- Independent Performance: Iski sabse badi khasiyat ye hai ki aap Storage, IOPS, aur Throughput ko alag-alag control kar sakte hain. Ab speed badhane ke liye faltu storage kharidne ki zaroorat nahi hai.
+- Baseline Speed: Ismein default taur par 3,000 IOPS aur 125 MiB/s ki speed milti hai, chahe volume ka size kitna bhi chota ho.
+- More Speed: Agar aapko aur zyada performance chahiye, to aap ise bina storage badhaye 16,000 IOPS aur 1,000 MiB/s tak up-scale kar sakte hain.
+- Cost Effective: Ye gp2 se 20% sasta hai aur behtar performance deta hai.
+
+<br>
+
+### gp3 — Why Recommended?
+
+gp3 modern general-purpose SSD hai jo most workloads ke liye balanced option hai. AWS ne gp3 ko gp2 se better isliye banaya kyunki gp2 mein performance disk size se heavily linked thi.
+
+Iska matlab users ko unnecessary large disks leni pad sakti thi sirf performance ke liye. gp3 ne storage aur performance ko decouple kar diya, jisse users cost-efficient aur flexible architecture bana sakte hain.
+
+<br>
+<br>
+
+### io2 and io1
+
+io1 aur io2 ko "Provisioned IOPS" volumes kaha jata hai. Inka matlab hai ki aap AWS ko pehle se advance mein batate hain ki aapko kitni speed (IOPS) chahiye, aur AWS aapko woh speed har waqt guaranteed deta hai.
+
+Inka istemal tab kiya jata hai jab aapko bahut zyada speed aur zero delay (latency) chahiye ho.
+
+**io1 (First Generation High-Performance)**:
+- Yeh purana high-performance SSD volume hai.
+- Fix Speed: Aap jitni IOPS select karenge, volume hamesha usi speed par chalega. Ismein Burst Balance jaisa koi chakkar nahi hota.
+- Limit: Aap 1 GiB storage par maximum 50 IOPS mang sakte hain.
+- Capacity: Ek single volume par aap maximum 64,000 IOPS tak ja sakte hain.
+
+**io2 (Modern High-Performance)**:
+- Yeh io1 ka upgraded version hai aur aaj ke samay mein behtar choice hai.
+- Zyada Efficiency: Ismein aap 1 GiB storage par 500 IOPS mang sakte hain. Iska matlab hai ki kam storage mein bhi aap bahut zyada speed hasil kar sakte hain.
+- Behtar Durability: Iski reliability 99.999% hai (io1 se 100 guna behtar). Iska matlab hai ki disk fail hone ka khatra na ke barabar hai.
+- Cost: io2 ki keemat io1 jitni hi hai, lekin features behtar hain.
+
+**io2 Block Express (Sabse Tez)**:
+- Jab aap io2 volume ko bade instances (jaise R5b, X2idn) ke saath jodte hain, to woh automatically "Block Express" ban jata hai.
+- Speed: Yeh 2,56,000 IOPS aur 4,000 MiB/s ki throughput tak ja sakta hai.
+- Use Case: Yeh un bade databases ke liye hai jo hazaron transactions ek second mein karte hain.
+
+<br>
+
+### io2 — Why Expensive?
+
+Mission-critical databases jaise Oracle, SAP, ya financial systems predictable latency demand karte hain. Agar storage unpredictable ho to transactions slow ya inconsistent ho sakte hain, jo business-critical issue hai.
+
+io2 guaranteed high IOPS aur lower latency provide karta hai, isliye premium hai. Yani tum reliability aur predictability ke liye extra pay kar rahe ho.
+
+<br>
+<br>
+
+### HDD Types — Why Still Exist?
+
+Har workload SSD-level random speed demand nahi karta. Large log processing ya archival data mostly sequential ya infrequent access hota hai. SSD use karna aise cases mein unnecessary expensive ho sakta hai.
+
+st1 aur sc1 cost optimization ke liye design hue hain. Business goal har jagah max performance nahi, right-sized performance hota hai.
+
+<br>
+<br>
+
+### Ek Practical Rule:
+
+- Default workload → gp3
+- Critical DB → io2
+- Sequential big data → st1
+- Archive → sc1
+
