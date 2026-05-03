@@ -161,4 +161,4 @@ Ye further aur divided hote hain.
 
 <br>
 
-<img src="https://drive.google.com/uc?export=view&id=1OhMMSkJn5Pp2MFk0vNtk5JtBXPSLkJ2c" width="800" height="430">
+<img src="https://drive.google.com/uc?export=view&id=1OhMMSkJn5Pp2MFk0vNtk5JtBXPSLkJ2c" width="800" height="400">
