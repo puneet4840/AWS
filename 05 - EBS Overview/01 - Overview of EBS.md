@@ -158,3 +158,7 @@ AWS mein volumes yani disk multiple types ke hote hain:
 Ye further aur divided hote hain.
 
 <img src="https://drive.google.com/uc?export=view&id=1JpAhOzJvqqdzH2zDNMugCp0PP6ivstWX" width="800" height="430">
+
+<br>
+
+<img src="https://drive.google.com/uc?export=view&id=1OhMMSkJn5Pp2MFk0vNtk5JtBXPSLkJ2c" width="800" height="430">
