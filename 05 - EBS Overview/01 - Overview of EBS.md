@@ -47,6 +47,33 @@ Store simply indicates data retention. Matlab data permanently store. Ye sirf te
 <br>
 <br>
 
+### EBS Key Terminologies
+
+- **Volume Size** - The storage capacity of an EBS volume, measured in GiB (Gibibytes).
+  
+- **IOPS (Input/Output Operations Per Second)**:
+  - Measures how many read and write operations per second a volume can handle.
+  - Indicates the speed and responsiveness of storage. Important for transaction-heavy workloads (e.g. databases).
+ 
+- **Baseline IOPS**:
+  - The default guaranteed performance for your volume type (before bursting or provisioning).
+  - Matlab minimum performance from a volume.
+ 
+-  **Provisioned IOPS (PIOPS)**:
+  -   feature where you explicitly set desired IOPS (up to 256,000).
+
+- **Burst Performance / Burst Credits**:
+  - Temporary performance boost above baseline IOPS when needed.
+  - Volumes accumulate burst credits when idle and spend them under load.
+  - Helps small volumes handle occasional heavy I/O spikes.
+
+- **Throughput (MB/s)**:
+  - Measures the amount of data transferred per second, typically in MB/s.
+  - IOPS = “how many”; Throughput = “how fast”.
+
+<br>
+<br>
+
 ### Why EBS Instead of Internal Disk?
 
 Traditional servers mein storage often machine ke andar physically hoti hai.
@@ -60,3 +87,74 @@ Ye architecture DevOps aur enterprise operations ke liye huge advantage hai.
 <br>
 <br>
 
+### EBS Ka Architecture Kaise Kaam Karta Hai?
+
+EBS physically AWS ke backend infrastructure par redundant hardware systems par stored hota hai. Tumhara EC2 instance us storage ko network ke through access karta hai as if wo local disk ho.
+
+Ye design users ko abstraction deta hai, jisse unhe physical disk management ki tension nahi hoti. AWS internally replication aur reliability mechanisms use karta hai taaki hardware failure ke case mein durability maintain rahe.
+
+Yani user ke liye disk ek logical service hai, backend complexity AWS handle karta hai.
+
+<br>
+<br>
+
+### Availability Zone (AZ) Dependency
+
+Har EBS volume ek specific Availability Zone ke andar create hota hai. Iska reason latency aur performance optimization hai, kyunki same AZ ke andar network communication faster aur more reliable hota hai.
+
+Agar EBS ko freely har AZ mein mount karne diya jaye to latency aur architecture complexity increase ho sakti hai. Isi liye EBS direct same AZ attachment tak limited hota hai.
+
+Agar cross-AZ move karna ho, to snapshot create karke new AZ mein restore karte hain.
+
+Ye design resilience aur architecture discipline dono maintain karta hai.
+
+<br>
+<br>
+
+### Types of Volumes
+
+AWS mein mainly 2 types ke volumes hote hain:
+- Root Volume (OS Disk).
+- Data Volume (Data Disk).
+
+Jaise Azure mein OS store karne ke liye OS Disk hoti hai aur Data Store karne ke liye data disk attach hoti hai vaise hi AWS mein OS Store karne ke liye Root Volume hoti hai aur Data store karne ke liye Data volume hoti hai.
+
+**Root Volume Kya Hota Hai?**:
+
+Jab tum EC2 launch karte ho, operating system ko boot hone ke liye primary storage chahiye hoti hai. Is primary bootable storage ko root volume kehte hain.
+
+Linux mein ye usually /dev/xvda ya /dev/sda1 hota hai, aur Windows mein C drive hota hai. Is root volume ke bina system boot nahi karega, kyunki OS files available nahi hongi.
+
+**Additional Volumes Kyu Chahiye?**:
+
+Production environments mein sirf OS storage kaafi nahi hoti. Applications, databases, logs, backups, aur user-generated content alag storage structure demand karte hain.
+
+Isliye additional EBS volumes attach kiye jaate hain taaki data segregation ho. Data segregation ka reason management, security, scaling, aur backup simplification hai.
+
+Example ke liye database ko OS se separate volume par rakhna restore aur performance tuning ko easier banata hai.
+
+<br>
+<br>
+
+### Delete on Termination — Ye Critical Setting Kyu Hai?
+
+Jab EC2 terminate hota hai, AWS optionally associated root volume ko delete kar sakta hai. Ye setting default scenarios ke liye useful hai jahan temporary instances quickly remove karne hote hain.
+
+Lekin production ya important data workloads mein agar ye accidentally enabled raha to data permanently loss ho sakta hai. Isliye admins ko samajhna chahiye ki compute lifecycle aur data lifecycle same nahi hone chahiye.
+
+Safe design usually important data ko preserve karta hai independent of server existence.
+
+<br>
+<br>
+
+### EBS Volume Types
+
+AWS mein volumes yani disk multiple types ke hote hain:
+
+1 - SSD
+
+2 - HDD
+
+Ye further aur divided hote hain.
+
+<img src="https://drive.google.com/uc?export=view&id=1JpAhOzJvqqdzH2zDNMugCp0PP6ivstWX" width="600" height="330">
