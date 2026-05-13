@@ -16,6 +16,18 @@ AWS mein Load Balancer incoming requests ko sirf EC2 instance par hi distribute 
 - Ip Addresses.
 - Lambda Functions.
 
+ELB ek regional service hai aur availability zones mein high availability bhi provide karta hai aur do EC2s alag-alag availability zones hai to traffic ko distribute karta hai.
+
+ELB application ko access karne ke liye IP Address provide nahi karta balki ek DNS entry provide karta hai jisse tum application access kar sakte ho.
+
+**Example-1**:
+
+Suppose tumahar application on-premises servers par run kar rha hai, tumne on-premise network ko aws vpc ke saaath site-to-site ya fir direct connection se connect kiya hua hai. To ELB tumhare on-premises ke server par bhi traffic distribute kar sakta hai agar tumne load balancer ke backend mein server ki ip register ki hai to.
+
+**Example-2**:
+
+ELB lambda function ko bhi execute kar sakta hai agar ELB ke backend mein lambda function register kiya hai to. Har request par lambda trigger ho sakta hai.
+
 <br>
 <br>
 
