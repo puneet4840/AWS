@@ -68,3 +68,7 @@ User 4 → Server1
 ```
 Isko bolte hain: **Load Balancing**.
 
+<br>
+<br>
+
+### Types of Elastic Load Balancer
