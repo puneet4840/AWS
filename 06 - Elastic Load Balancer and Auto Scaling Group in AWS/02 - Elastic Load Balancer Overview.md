@@ -513,3 +513,49 @@ Matlab 2 baar fail hone pe unhealthy mark hoga.
 Healthy targets me se ek target choose hota hai.
 
 Request us server pe forward hoti hai.
+
+<br>
+<br>
+
+### Load Balancing Algorithms
+
+ALB internally multiple balancing techniques use karta hai.
+
+**1 - Round Robin**:
+
+Isme traffic backend servers par sequence mein distribute hota hai.
+
+Example:
+```
+Request 1 → Server 1
+Request 2 → Server 2
+Request 3 → Server 3
+```
+
+<br>
+
+**2 - Least Outstanding Requests**:
+
+Jis server pe least active requests hain usko next request milegi.
+
+Better for:
+- uneven workloads
+- APIs
+- long processing requests
+
+<br>
+
+**3 - Sticky Session**:
+
+Kabhi same user ko same backend pe bhejna hota hai. To sticky session load balancing algorithm ka use hota hai.
+
+Example:
+- shopping carts
+- session login apps
+
+ALB cookie create karta hai:
+```
+AWSALB
+```
+Ye session persistence maintain karta hai.
+
