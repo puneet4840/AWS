@@ -187,7 +187,7 @@ Range:
 <br>
 <br>
 
-<img width="800" height="400" src="https://drive.google.com/uc?export=view&id=1m_dZSLgFvoQZTzhKYLDbPv3c4bann1LG">
+<img width="800" height="450" src="https://drive.google.com/uc?export=view&id=1m_dZSLgFvoQZTzhKYLDbPv3c4bann1LG">
 
 <br>
 <br>
