@@ -187,6 +187,11 @@ Range:
 <br>
 <br>
 
+<img align="left" width="600" height="450" src="https://drive.google.com/uc?export=view&id=1m_dZSLgFvoQZTzhKYLDbPv3c4bann1LG">
+
+<br>
+<br>
+
 ### AWS Mein VPC CIDR Kyu Dena Padta Hai?
 
 Jab AWS VPC create karta hai to usko pehle se pata hona chahiye:
