@@ -16,7 +16,6 @@ IAM ko samajhne ke liye 5 major building blocks hain:
 - Groups.
 - Policies.
 - Roles.
-- Permissions.
 
 <br>
 
