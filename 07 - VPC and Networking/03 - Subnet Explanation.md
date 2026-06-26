@@ -246,7 +246,7 @@ Ab aage hum unhi concepts ko clear karenge.
 <br>
 <br>
 
-Jab aap VPC ke andar koi naya subnet banate hain, to woh by default ek Private Subnet hota hai. Usko Public Subnet mein badalne ke liye hi hum Internet Gateway aur Route Table ka use karte hain.
+Jab aap VPC ke andar koi naya subnet banate hain, to woh by default ek Private Subnet hota hai. Usko Public Subnet mein badalne ke liye hi hum Internet Gateway aur Route Table ka use karte hain. Ab hum aage Route Table aur Internet Gateway ko samjhenge.
 
 <br>
 <br>
@@ -404,3 +404,189 @@ Ab agar ek EC2 ```10.0.1.15``` dusre EC2 ```10.0.3.22``` ko packet bhejna chahe,
 local
 ```
 Is route ki wajah se VPC ke andar ka traffic VPC ke andar hi travel karta hai.
+
+Agar tumne route table mein local ke alawa koi aur rule nhi diya hai to vo packet discard ho jayega, vo packet vpc se bahar kahi nhi jayega. Agar server internet ko access karna chta hai, lekin route table mein esa matching ka koi route hai hi nhi to packet kabhi internet par nhi jayega. 
+
+<br>
+<br>
+
+### Internet Gateway kya hota hai?
+
+Internet Gateway (IGW) ek AWS managed service hai. Ye VPC ko Internet se connect karti hai.
+
+Internet Gateway ka kaam sirf ek hi hai. VPC ko Internet se connect karna.
+
+Dhyan rahe.
+- Internet Gateway packet generate nahi karta.
+- Internet Gateway routing decide nahi karta.
+- Internet Gateway firewall nahi hai.
+- Internet Gateway NAT Gateway bhi nahi hai.
+
+Ye sirf ek gateway hai.
+
+**Gateway Kya Hota Hai?**:
+
+Networking mein Gateway ka matlab hota hai ```Ek network se doosre network tak pahunchne ka exit point```.
+
+AWS mein Internet Gateway VPC aur Internet ke beech connection establish karta hai.
+
+<br>
+
+Agar aapke VPC mein Internet Gateway nahi hai, to aapka VPC poori tarah se duniya se kat jata hai—na to bahar ka koi user aapke server ko khol sakta hai, aur na hi aapka server internet se koi file download kar sakta hai.
+
+<br>
+
+**Internet Gateway Ke Do Sabse Main Kaam**:
+
+**1 - Target For Route Tables**:
+
+Jaise humne pehle baat ki, Route Table mein jab hum ```0.0.0.0/0``` (Internet) likhte hain, to uske aage target mein hume batana padta hai ki traffic kahan bhejein. Hum wahan apne Internet Gateway ki ID (jaise ```igw-12345678```) daalte hain. Yeh traffic ko bahar nikalne ka rasta deta hai. Isse traffic vpc se internet gatway par aata hai. Fir internet gateway se internet par jata hai.
+
+**2 - Network Address Translation - NAT (IP Badalne Ka Kaam)**:
+
+- Aapke VPC ke andar jitne bhi EC2 instances hote hain, unka ek Private IP hota hai (jaise ```10.0.1.5```). Yeh IP internet par kaam nahi karta.
+- Jab aapka server internet se baat karta hai, to use ek Public IP ki zaroorat hoti hai.
+- Jab aapke server ka data packet IGW se hokar guzarata hai, to IGW chupke se uske Private IP ko hata kar uski jagah aapka Public IP/Elastic IP likh deta hai (1:1 NAT). Jab internet se jawab aata hai, to IGW dobara Public IP ko Private IP mein badal kar server tak pahuncha deta hai.
+
+<br>
+
+**Kya Sirf Internet Gateway Bana Dena Kaafi Hai?**
+
+Kya VPC se sirf internet gateway attach kar dena kaafi hai?
+
+Humko pta hai ki agar apne vpc ko internet se connect karna hai to us vpc mein internet gateway attach karna hota hai. Agar humne vpc se sirf internet gatway attach kar diya to kya vpc internet se connect ho jayega. 
+
+Jawab hai Nahi.
+
+Suppose tumne VPC se internet gatway attach kar diya, lekin route table mein tumne koi route nhi banaya jo traffic ko internet par le jaye.
+
+Bina route ke tumhari route table kuch esi dikhti hai:
+| Destination | Target |
+| ----------- | ------ |
+| 10.0.0.0/16 | local  |
+
+Is route table mein koi internet route hai hi nahi, Ab batao. Packet internet tak kaise jayega? Usko to koi route hi nahi mila. Internet Gateway attach hai. Lekin Route Table usko use hi nahi kar rahi.
+
+Result
+```
+No Internet Access
+```
+Iska matlab vpc internet access kar hi nahi payega.
+
+Agar tumne vpc se internet gatway attach kar diya hai aur route table mein internet gateway ka koi route diya hi nhi hai to vpc se nikalne wala traffic kabhi internet par jayga hi nahi. Tumko alag se route table mein ek route banana padega jo vpc ke traffic ko internet gatway tak route karega.
+
+Solution:
+- Tum Route Table mein ek naya route add karte ho.
+
+Destination
+```
+0.0.0.0/0
+```
+Target
+```
+Internet Gateway
+```
+
+Ab Route Table ban gayi.
+| Destination | Target |
+| ----------- | ------ |
+| 10.0.0.0/16 | local  |
+| 0.0.0.0/0   | IGW    |
+
+
+Ab jab network packet ka destination ```0.0.0.0/0``` internet hoga Route Table kahegi Ye packet Internet Gateway ko bhej do.
+
+<br>
+
+**Internet Gateway Ki Sabse Bade features**:
+
+AWS ne Internet Gateway ko is tarah design kiya hai ki aapko iski maintenance ki chinta nahi karni padti:
+- **Highly Available (Kabhi Down Nahi Hota)**: IGW koi ek single physical computer ya router nahi hai jo kharab ho jaye. Yeh AWS ki ek software-defined service hai jo piche bohot sare redundant systems par chalti hai. Yeh kabhi down nahi hoti.
+- **Horizontally Scalable (Koi Speed Limit Nahi)**: Aapke VPC se chahe 1 MB ka traffic guzaare ya 100 GB ka, Internet Gateway apne aap bada (scale) ho jata hai. Isme network traffic ki koi bandwidth limit ya rukawat nahi hoti.
+- **Bilkul Muft (Free of Cost)**: AWS mein Internet Gateway create karne ka ya use VPC se attach karne ka koi paisa nahi lagta. Yeh bilkul free component hai. (Aapko sirf us data ka paisa dena hota hai jo internet par transfer hota hai).
+
+<br>
+
+**Ek VPC Mein Kitne IGW Ho Sakte Hain?**:
+
+Rule: Ek VPC ke saath aap sirf aur sirf ek (1) Internet Gateway hi attach kar sakte hain.
+
+Aap ek se zyada IGW banakar ek hi VPC mein nahi jod sakte. Agar aapko lagta hai ki traffic bohot zyada hai, to chinta mat kijiye, kyunki ek hi IGW unlimited traffic handle karne ke liye kaafi hai.
+
+<br>
+<br>
+
+## VPC mein public subnet banane ki complete process (VPC ko internet ke saath kaise connect karte hain)
+
+We know that, ki jab hum AWS mein ek VPC create karte hain to, normally us vpc ke ander koi subnet nhi hota aur aap bina subnet ke kisi bhi VPC mein EC2 instance create nahi kar sakte hain. VPC ke andar subnet banana bilkul zaroori (mandatory) hai.
+
+Jab aap ek EC2 instance launch karte hain, toh use network se connect hone ke liye ek IP address aur network interface ki zaroorat hoti hai. VPC sirf ek bada network area (IP range) define karta hai, jabki subnet us area ka ek chota hissa hota hai jo actual mein EC2 instances ko hold karta hai. Bina subnet ke EC2 instance ko koi physical ya logical jagah nahi milti jahan usko network mil sake.
+
+To VPC mein subnet create karna mandatory hai, Sirf ec2 instance launch karne ke liye hi nhi, aap VPC ke andar koi bhi resource launch karein, usme subnet banana bilkul zaroori (mandatory) hai.
+
+AWS ka yeh niyam sirf EC2 ke liye nahi hai. VPC ke andar chalne wala koi bhi resource (jaise Database, Load Balancer, ya Containers) bina subnet ke kaam nahi kar sakta.
+
+<br>
+
+To jab bhi aap vpc ke ander ek subnet banate hain to vo subnet by default ek private subnet hota hai, matlab jo bhi resources us subnet mein create honge vo internet se connected nhi honge. Lekin vpc create hote hi, AWS vpc ke ander ek default route table create karta hai, jisme ek local route hota hai, us route ki wajah se vpc ke andar ke instances aapas mein toh baat kar sakte hain (VPC ke andar), lekin unka connection bahar ki internet duniya se nahi ho sakta.
+
+To subnet ko humko public banana hota hai. Subnet ko public banane ke liye usme aws ke route table aur internet gatway jaise resources ka use karte hain. 
+
+Ab poori process dekho ek private subnet ko public subnet banane ke liye.
+
+<br>
+
+**Ek normal subnet ko "Public Subnet" banane ke liye aapko 3 bade steps karne hote hain**:
+
+Suppose apne ek VPC create kiya hai aur uske ander ek subnet create kiya hai:
+
+**1 - Internet Gateway (IGW) Create Aur Attach Karna**: Sabse pehle aapko ek Internet Gateway banana hota hai aur use apne VPC se connect (attach) karna hota hai. Yeh gateway aapke VPC aur bahar ke internet ke beech ka darwaza hai.
+
+**2 - Route Table Mein Route Add Karna**: Aapko ek alag Route Table banani hoti hai (ya fir main table ko edit karna hota hai) aur usme ek naya route dalna hota hai: ```0.0.0.0/0 -> igw-xxxxxx``` (Internet Gateway). Iska matlab hai ki agar kisi instance ko internet par jana hai, toh uska traffic is gateway ke paas bheja jaye.
+
+**3 - Subnet Ko Associate Karna**: Is nayi Route Table ko aapko apne us subnet se connect (associate) karna hota hai jise aap public banana chahte hain.
+
+**4 - Auto-Assign Public IP**: Iske sath hi aapko subnet ki settings mein jakar "Auto-assign public IPv4 address" ko enable karna padta hai, taaki wahan banne wale EC2 instances ko ek public IP mil sake.
+
+<br>
+
+### Example:
+
+Suppose hum ek naya VPC banate hain.
+
+VPC CIDR
+```
+10.0.0.0/16
+```
+
+**Step 1: Subnet create karo**.
+```
+10.0.1.0/24
+```
+Abhi ye sirf ek subnet hai. Na public hai na internet-enabled.
+
+**Step 2: Internet Gateway create karo**.
+
+**Step 3: Internet Gateway ko VPC ke saath attach karo**.
+
+Ab VPC ke paas internet tak pahunchne ka ek gateway available hai. Lekin abhi bhi internet access nahi milega.
+
+**Step 4: Ek Route Table create karo**.
+
+Ya to to main route table ko edit karke usme route add kar sakte hain ya fir ek nayi route table create kar sakte hain.
+
+Isme routes add karo.
+
+| Destination | Target |
+| ----------- | ------ |
+| 10.0.0.0/16 | local  |
+| 0.0.0.0/0   | IGW    |
+
+**Step 5: Is Route Table ko Subnet ke saath associate karo**.
+
+Ab subnet ke paas internet ki taraf route available hai. Is stage par AWS is subnet ko Public Subnet consider karta hai.
+
+**Step 6**:
+
+Agar tum chahte ho ki EC2 ko internet se directly access kiya ja sake, to EC2 ke paas Public IPv4 Address ya Elastic IP bhi hona chahiye. Agar Public IP nahi hoga, to Route Table aur Internet Gateway hone ke baad bhi internet se inbound communication possible nahi hoga.
+
