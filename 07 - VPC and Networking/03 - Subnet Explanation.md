@@ -590,3 +590,19 @@ Ab subnet ke paas internet ki taraf route available hai. Is stage par AWS is sub
 
 Agar tum chahte ho ki EC2 ko internet se directly access kiya ja sake, to EC2 ke paas Public IPv4 Address ya Elastic IP bhi hona chahiye. Agar Public IP nahi hoga, to Route Table aur Internet Gateway hone ke baad bhi internet se inbound communication possible nahi hoga.
 
+<br>
+<br>
+
+### Real-Life Workflow: Ek Request Kaise Poori Hoti Hai?
+
+Maan lijiye aapka ek web server hai Public Subnet mein hai.
+
+**User Request**: User ne browser mein aapki website ka Public IP dala. Request internet se hoti hui seedhe aapke Internet Gateway par aayi.
+
+**IGW to EC2**: IGW ne dekha ki yeh Public IP kis Private IP (```10.0.1.5```) se juda hai. Usne traffic ko VPC ke andar bhej diya, aur Security Group se hote hue request EC2 tak pahunch gayi.
+
+**EC2 Response**: Server ne page ready kiya aur jawab bheja. Server ne dekha ki user ka IP bahar ka hai, to usne Route Table check ki.
+
+**Route Table to IGW**: Route table ne ```0.0.0.0/0``` ka rule dekh kar response ko vapas Internet Gateway ki taraf bhej diya.
+
+**IGW to User**: IGW ne Private IP ko vapas Public IP mein badla aur internet ke zariye user ke browser tak page pahuncha diya.
