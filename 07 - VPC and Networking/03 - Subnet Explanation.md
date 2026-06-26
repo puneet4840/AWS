@@ -516,6 +516,59 @@ Aap ek se zyada IGW banakar ek hi VPC mein nahi jod sakte. Agar aapko lagta hai 
 <br>
 <br>
 
+**Route Table Association Kya Hai?**:
+
+Har subnet kisi na kisi Route Table ke saath associated hota hai.
+
+Example:
+```
+VPC
+│
+├── Public-Route-Table
+│
+├── Private-Route-Table
+│
+├── Subnet-A
+│
+└── Subnet-B
+```
+
+Association:
+```
+Subnet-A
+↓
+
+Public Route Table
+```
+```
+Subnet-B
+↓
+
+Private Route Table
+```
+
+Ab dono subnets ka CIDR alag ho sakta hai ya same size ka ho sakta hai, lekin unka behavior Route Table se decide hoga.
+
+**Public Route Table Kaisi Hoti Hai?**:
+
+| Destination | Target           |
+| ----------- | ---------------- |
+| 10.0.0.0/16 | local            |
+| 0.0.0.0/0   | Internet Gateway |
+
+Is Route Table ko agar Subnet-A ke saath associate kar diya gaya, to Subnet-A public subnet ban gayi. Kyuki is route table mein ek route hai to internet gatway ko jata hai.
+
+**Private Route Table Kaisi Hoti Hai?**:
+
+| Destination | Target |
+| ----------- | ------ |
+| 10.0.0.0/16 | local  |
+
+Isme Internet Gateway ka route hi nahi hai. Agar Subnet-B is Route Table ke saath associated hai, to wo private subnet hai.
+
+<br>
+<br>
+
 ## VPC mein public subnet banane ki complete process (VPC ko internet ke saath kaise connect karte hain)
 
 We know that, ki jab hum AWS mein ek VPC create karte hain to, normally us vpc ke ander koi subnet nhi hota aur aap bina subnet ke kisi bhi VPC mein EC2 instance create nahi kar sakte hain. VPC ke andar subnet banana bilkul zaroori (mandatory) hai.
