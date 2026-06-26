@@ -31,6 +31,19 @@ Is lab mein hum ye architecture banayenge:
 
 
 <br>
+
+### Note
+
+Ek EC2 ko internet access karne ke liye 2 chaize jaruri hain:
+- Route Table mein internet ke liye route hona chahiye: ```0.0.0.0/0 → Internet Gateway```.
+  
+- Us subnet mein launch hone wali EC2 instance ke paas **Public IP** ya **Elastic IP** hona chahiye.
+
+Ek EC2 internet ko tabhi access kar sakta hai, ec2 ek public subnet mein ho aur uske paas ek public ip ho. Agar ec2 public subnet mein hai lekin uske paas public ip nhi hai to vo internet access nhi kar sakta.
+
+Agar ec2 private subnet mein hai aur uske paas sirf public ip hai to bhi vo internet access nhi kar sakta.
+
+<br>
 <br>
 
 ### Step-1: Create a Custom VPC
