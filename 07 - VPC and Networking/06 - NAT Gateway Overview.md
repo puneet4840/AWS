@@ -296,3 +296,32 @@ Jab aapke private subnet ka koi computer internet par kisi website ko request bh
 - Jab website wapas jawaab (response) bhejti hai, toh NAT Gateway apni table check karta hai. Use turant yaad aa jata hai ki yeh jawaab kis private computer ke liye aaya hai.
 - Internet se koi bhi bahar ka computer seedhe aapke private computer ko data nahi bhej sakta. NAT Gateway sirf unhi packets ko andar aane deta hai jinki request andar se pehle bahar gayi thi.
 
+<br>
+<br>
+
+### NAT Gateway High Availability
+
+NAT Gateway ki High Availability (HA) ka matlab hai ki aapka internet connection kabhi band na ho, chahe koi bada technical failure hi kyun na ho jaye.
+
+AWS mein NAT Gateway ki High Availability achieve karne ke liye hum har ek Availability Zone (AZ) mein alag NAT Gateway banate hain.
+
+**Yeh Setup Kyun Zaroori Hai?**
+
+AWS mein ek NAT Gateway kisi ek specific Availability Zone (jaise AZ-1) ke andar hi physically standard hota hai. Iska matlab:
+- Agar aapne sirf ek NAT Gateway banaya AZ-1 mein.
+- Aapke private servers AZ-1 aur AZ-2 dono mein hain.
+- Agar poore AZ-1 mein koi dikkat aa gayi (jaise power cut ya hardware failure), toh AZ-1 ka NAT Gateway band ho jayega.
+- Is wajah se AZ-2 ke servers ka internet bhi band ho jayega, kyunki woh traffic ke liye AZ-1 ke NAT Gateway par depend standard the. Isko Single Point of Failure kehte hain.
+
+**High Availability Kaise Kaam Karti Hai?**
+
+Best practice yeh hai ki aap jitne AZs use kar rahe hain, har ek mein ek-ek NAT Gateway banayein.
+- Agar aapke paas do AZs hain (AZ-1 aur AZ-2), toh aap dono AZs ke public subnets mein ek-ek NAT Gateway create karenge.
+- AZ-1 ke private servers ka traffic AZ-1 ke NAT Gateway se hokar internet par jayega.
+- AZ-2 ke private servers ka traffic AZ-2 ke NAT Gateway se hokar internet par jayega.
+
+**Iska Asaan Fayda Kya Hai?**
+- **Fault Tolerance**: Agar kal ko AZ-1 poora down ho jata hai, toh sirf AZ-1 ka NAT Gateway band hoga. AZ-2 ka NAT Gateway bilkul sahi kaam karta rahega, aur AZ-2 ke servers ka internet chalta rahega.
+
+- **Cost vs Redundancy**: Is setup mein aapko har NAT Gateway ke alag paise dene hote hain, lekin aapka business downtime se bach jata hai.
+
