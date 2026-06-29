@@ -501,3 +501,47 @@ Gateway Endpoint mein traffic Route Table ke basis par redirect hota hai. Gatewa
 Interface Endpoint mein traffic DNS Resolution ke basis par redirect hota hai. Wahi Interface Endpoint baaki ki aws services ke liye bana hai.
 
 
+<br>
+<br>
+
+### Ek Real Production Example
+
+Maan lo ek Banking Application hai.
+
+Uske paas 500 Private EC2 Instances hain.
+
+Ye EC2 teen AWS services use karte hain.
+- S3
+- Secrets Manager
+- CloudWatch
+
+Architecture kuch aisa hoga.
+```
+                Private EC2
+                     |
+          -----------------------
+          |                     |
+          |                     |
+ Gateway Endpoint      Interface Endpoint
+          |                     |
+          |                     |
+         S3          Secrets Manager
+                             |
+                        CloudWatch
+```
+
+Ab kya hoga?
+
+Jab application backup upload karegi.
+
+Traffic Gateway Endpoint se jayegi.
+
+Jab application password read karegi.
+
+Traffic Interface Endpoint se jayegi.
+
+Jab logs CloudWatch bheje jayenge.
+
+Traffic bhi Interface Endpoint se jayegi.
+
+Ek bhi packet Public Internet par nahi jayega.
