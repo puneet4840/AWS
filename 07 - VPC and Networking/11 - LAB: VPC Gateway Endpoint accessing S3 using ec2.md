@@ -9,8 +9,9 @@ Is lab mein VPC Gateway endpoint ke through s3 bucket ko aws ke private network 
 - Create VPC with two subnets – A public and a private subnet.
 - Create Internet Gateway and attach it to VPC.
 - Create route table in public subnet and create a route in it: ```0.0.0.0/0``` to internet gateway.
+- Create route table in private subnet to receive traffic from other ec2.
 - Launch an EC2 instance (EC2-A) (bastion host) in the Public subnet (allow SSH for 0.0.0.0/0).
-- Launch an EC2 instance (EC2-B) in the Private subnet (allow SSH from SG of bastion host).
+- Launch an EC2 instance (EC2-B) in the Private subnet (allow SSH from Security Group of EC2-A).
 - Create IAM role for EC2 instance to allow S3Full permissions. Attach it to EC2-B.
 - Login to EC2-A over SSH and from there SSH into EC2-B (you will need .pem key file on EC2-A).
 - Try accessing S3 bucket using ```aws s3 list```.
