@@ -396,3 +396,66 @@ Kaise kaam karta hai:
 
 **Easy On-Premises Access**: Agar aapne apne office ka VPN TGW se connect kar diya, toh transitive property ki wajah se office ke log ek hi connection se VPC-A, VPC-B, aur VPC-C teeno ko access kar sakte hain.
 
+<br>
+<br>
+
+### Transit Gateway Setup Kaise Karte Hain?
+
+TGW setup karne ke liye ye steps follow karein:
+
+**Step 1: Transit Gateway Create Karein**:
+- AWS Console mein VPC Dashboard par jayein.
+- Transit Gateways par click karein aur Create Transit Gateway select karein.
+- Isko ek naam dein aur Amazon Side ASN (Autonomous System Number) configure karein (Default bhi chhod sakte hain).
+
+**Step 2: VPCs ko Attach Karein**:
+- Transit Gateway Attachments par jayein aur Create Transit Gateway Attachment par click karein.
+- Apna TGW select karein, Attachment type VPC chunyein, aur jis VPC ko connect karna hai use select karein.
+- Wo Availability Zones aur subnets select karein jahan TGW ENI banega. (Aise hi baki saare VPCs ke liye attachments banayein).
+
+**Step 3: TGW Route Table Configure Karein**:
+- By default, TGW ek default route table bana deta hai jahan saare VPCs ke routes automatically propagate (add) ho jaate hain.
+- Agar aapko custom routing chahiye (jaise VPC A sirf VPC B se baat kare, C se nahi), toh aap alag se custom TGW Route Table banakar attachments ko manual associate aur propagate kar sakte hain.
+
+**Step 4: VPC Route Tables Update Karein (Sabse Zaroori Step)**:
+- TGW setup karne ke baad bhi aapke EC2 instances ko nahi pata hota ki traffic TGW par bhejna hai.
+- Isliye aapko apne VPC ke Subnet Route Tables mein jana hoga.
+- Wahan ek naya route add karein: Target IP (jaise dusre VPC ka CIDR block ya ```0.0.0.0/0```) aur Target Type mein Transit Gateway select karke apna TGW chunyein.
+
+<br>
+<br>
+
+### Packet Flow Kaise Hota Hai?
+
+Maante hain ki VPC-A (Instance 1) se ek packet VPC-B (Instance 2) par bhejna hai. Iska packet flow aisa hoga:
+
+- **Instance Se Nikalna**: Instance 1 packet generate karta hai jiska destination IP Instance 2 ka hota hai.
+- **VPC-A Route Table Chec**k: Packet sabse pehle VPC-A ke subnet route table ko check karta hai. Wahan likha hota hai ki agar VPC-B ke IP par jana hai, toh target Transit Gateway (TGW) hai.
+- **ENI Tak Pahunchna**: Packet VPC-A ke us subnet mein maujood TGW Elastic Network Interface (ENI) ke paas jata hai.
+- **TGW Entrance**: ENI us packet ko secure AWS internal network ke zariye central Transit Gateway par bhej deta hai.
+- **TGW Route Table Lookup**: TGW us packet ka destination IP dekhta hai aur apni associated TGW Route Table check karta hai.
+- **Attachment Match**: Route table mein dikhta hai ki is destination IP ka rasta VPC-B Attachment se hokar jata hai.
+- **VPC-B Entrance**: TGW us packet ko VPC-B ke TGW ENI par forward kar deta hai.
+- **Destination Delivery**: VPC-B ka ENI us packet ko directly Instance 2 tak pahunche deta hai.
+
+<br>
+<br>
+
+### Transit Gateway Cross-Region Peering
+
+Transit Gateway (TGW) Cross-Region Peering ek aisi capability hai jisse aap do alag-alag AWS Regions (jaise US-East-1 aur EU-West-1) mein chal rahe Transit Gateways ko aapas mein connect kar sakte hain.
+
+Iska matlab yeh hai ki agar aapka global network hai, toh aap alag-alag regions ke VPCs aur on-premises networks ko AWS ke private global backbone network ke threw secure aur high-speed par aapas mein jor sakte hain.
+
+**Yeh Kaam Kaise Karta Hai?**
+
+Maan lijiye aapki company ka setup do regions mein hai: **Mumbai Region (ap-south-1)** aur **N. Virginia Region (us-east-1)**.
+
+**1. Local Connections**: Mumbai ke saare VPCs Mumbai TGW (TGW-Mumbai) se connected hain. Virginia ke saare VPCs Virginia TGW (TGW-Virginia) se connected hain.
+
+**2. The Peering Connection**: Aap TGW-Mumbai par jaakar ek Peering Attachment request create karte hain aur target mein TGW-Virginia ki ID aur uska region daalte hain.
+
+**3. Acceptance**: Virginia region mein jaakar aap is request ko accept karte hain. Ab dono TGWs ke beech ek direct pipeline (peering tunnel) ban jati hai.
+
+**4. AWS Backbone Routin**g: Yeh peering connection public internet par nahi jata. AWS apne khud ke under-sea aur land-based fiber optic cables (Global Backbone Network) ka use karta hai, jisse latency bohot kam milti hai aur security maximum hoti hai.
+
