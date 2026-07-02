@@ -149,3 +149,202 @@ Isi secure tunnel ko VPN Tunnel kehte hain.
 VPN ek encrypted tunnel hoti hai jo do alag networks ko public internet ke through securely connect karti hai.
 
 Matlab do network apas mein connect ho jate hain aur data ko internet par encrypt karke ek dusre ko bhejte hain.
+
+<br>
+<br>
+
+### Tunnel ka matlab kya hai?
+
+Bahut log sochte hain ki AWS sach mein internet ke andar koi alag cable bana deta hai.
+
+Nahi.
+
+Tunnel ek logical concept hai.
+
+Iska matlab hai.
+
+Data ko encrypt karke packets ke andar wrap kar diya gaya hai.
+
+Jo bhi packet internet par travel karega.
+
+Uske andar ka data unreadable hoga.
+
+<br>
+
+**Example**:
+
+Without VPN.
+```
+Name=Puneet
+
+Salary=500000
+```
+Ye packet agar kisi attacker ne dekh liya.
+
+To wo sab padh lega.
+
+VPN ke saath.
+
+Packet kuch aisa dikhega.
+```
+KJH8@#98HDF7SD8FSD87FSD8
+```
+Attacker packet dekh sakta hai.
+
+Lekin samajh nahi sakta.
+
+Kyunki packet encrypted hai.
+
+<br>
+<br>
+
+### AWS VPN Kyun Zaroori Hai?
+
+Humne padha hai ki VPN ke through on-premises network aur AWS VPC ko apas mein connect kiya jata hai.
+
+**Problem**: Agar aap apne office se AWS VPC ke andar chal rahe private EC2 instances ko access karna chahte hain, toh normal internet ke throug nahi kar sakte kyunki private IPs internet par routable nahi hote. Agar aap unhein public IPs denge, toh hacking ka khatra badh jata hai.
+
+**Solution**: AWS VPN internet ka hi use karta hai, lekin yeh aapke office aur AWS ke beech ek Encrypted Tunnel (crypto tunnel) bana deta hai. Is tunnel ke andar ka data koi third-party ya hacker read nahi kar sakta. Isko hum IPsec (IP Security) connection kehte hain.
+
+<br>
+<br>
+
+### AWS VPN ke do major types
+
+AWS mainly do types ke VPN provide karta hai.
+- Site-to-Site VPN.
+- Client VPN.
+
+<br>
+
+### 1 - Site-to-Site VPN
+
+Jab aap on-premises network aur AWS ke VPC ko apas mein VPN ke through connect karte ho to usko Site-to-Site VPN kehte hain.
+
+Matlab do networks ko connect karna ho to site-to-site vpn use karte hain.
+
+Yeh connection Network-to-Network hota hai. Yeh tab use hota hai jab pure office ke network ko AWS se jodna ho taaki office mein baitha koi bhi computer AWS ke servers ko securly access kar sake.
+
+Yeh connection tab use hota hai jab do poore ke poore networks ko aapas mein permanent jodna ho (Office Network + AWS Cloud Network).
+
+- Always-On Connection: Yeh connection 24/7 active rehta hai. Office ka koi bhi employee bina kisi extra software ke AWS resources ko access kar sakta hai agar firewall rules allowed hain.
+- Hardware Dependent: Iske liye aapke office mein ek proper router ya firewall device hona zaroori hai.
+
+Example.
+```
+Office Network
+
+↓
+
+VPN
+
+↓
+
+AWS VPC
+```
+
+<br>
+
+**Iske Core Components**:
+
+Site-to-Site VPN ko chalane ke liye 3 main cheezein chahiye hoti hain:
+
+**1.1 - Customer Gateway (CGW)**:
+- Yeh aapke on-premises (office) network side ka physical router ya software appliance hota hai.
+- AWS ko is device ka public IP address chahiye hota hai taaki woh isse connection establish kar sake.
+- Examples: Cisco ASA, Juniper Networks, Fortinet FortiGate, ya Check Point firewalls.
+
+**1.2 - Virtual Private Gateway (VGW) ya Transit Gateway (TGW)**:
+- Yeh AWS side par lagne wala ek VPN concentrator hai.
+- Yeh aapke VPC ke sath attach hota hai. Jab office se encrypted data aata hai, toh VGW usko decrypt karke VPC ke andar bhejta hai. Jab VPC se data office jana hota hai, toh VGW use encrypt karta hai.
+- Ek Virtual Private Gateway sirf ek hi VPC ke sath attach ho sakta hai.
+
+- Transit Gateway ka use tab karte hain jab ek hi VPN se multiple VPCs ko connect karna ho (Transitive Routing ki wajah se).
+- Agar aapke paas 50 VPCs hain aur aap sabko apne office se connect karna chahte hain, toh 50 alag-alag VGW lagana mushkil ho jayega. Wahan par aap ek central Transit Gateway banate hain aur VPN ko directly TGW se connect kar dete hain. Isse saare VPCs ek hi VPN connection se connect ho jate hain.
+
+**1.3 - VPN Tunnel**:
+- Customer Gateway aur Virtual Private Gatewa/Transite Gateway ke beech jo encrypted rasta banta hai, use tunnel kehte hain.
+- Yeh ek logical path hai jo internet ke upar banta hai jismein data encrypt hokar chalta hai.
+-  Jab aap AWS par ek Site-to-Site VPN banate hain, toh AWS automatically do (2) alag-alag Tunnels create karta hai. Ye do tunnels high availability ke liye banai jaati hain. Yeh do alag alag AWS Availability Zones (data centers) par terminate hoti hain. Agar ek tunnel ya ek AWS data center down ho jaye, toh aapka traffic automatically dusri tunnel par shift ho jata hai. Isse connectivity breakdown nahi hoti.
+
+<br>
+
+**Routing Strategy**: 
+
+Site-to-Site VPN configure karte waqt aapko routing ka tarika chunna hota hai:
+
+**1. Static Routing**: 
+- Aapko AWS mein manually likhna padta hai ki aapke office ka IP range kya hai (e.g., ```192.168.1.0/24```). Agar office mein koi naya network add hoga, toh aapko AWS mein aakar on-premises network ki IP range dobara manually update karna padega.
+- Agar aapka office network chota hai aur IPs change nahi hote, toh aap manually network routes define karte hain.
+
+**2. Dynamic Routing (BGP)**:
+- Isme aapka office router aur AWS ka gateway BGP (Border Gateway Protocol) ke threw aapas mein automatic baat karte hain aur aws ke gateway mein office ki ip range automatically add ho jati hai. Agar office mein koi naya subnet banta hai, toh ip range apne aap AWS VPN table mein add ho jata hai.
+- AWS hamesha BGP routing recommend karta hai.
+
+<br>
+
+### 2 - Client VPN
+
+Jab aap apne local computer ko AWS VPC ke saath VPN ke through connect karte hain to usko client vpn kehte hain.
+
+Yeh connection tab use hota hai jab pure office ko nahi, balki individual users ya remote employees ko AWS VPC ka secure access chahiye ho.
+
+- Yeh ek managed client-based VPN service hai. Employees apne laptop ya mobile par ek OpenVPN client application install karte hain.
+- Jab employee connect karta hai, toh AWS uski identity check karta hai (Active Directory, Okta, ya Certificates ke threw).
+-  Connect hone ke baad, employee ghar baithe-baithe AWS ke private resources ko securely access kar sakta hai.
+
+<br>
+<br>
+
+### AWS VPN mein Encryption kaise hoti hai?
+
+AWS VPN mein encryption ka poora process **IPsec (Internet Protocol Security)** framework par kaam karta hai. Yeh koi single protocol nahi hai, balki protocols ka ek poora group (suite) hai jo milkar data ko secure, private aur unalterable (jise badla na ja sake) banata hai.
+
+Jab aapka data aapke office (Customer Gateway) se AWS (Virtual Private Gateway) ki taraf nikalta hai, toh encryption direct nahi shuru hoti. Iske peeche ek poora step-by-step cryptographic process hota hai.
+
+**Part 1: Connection Setup (Sirf Ek Baar Hota Hai)**:
+
+Kisi bhi data ko encrypt karne se pehle, dono sides (AWS aur Aapka office Router) ko aapas mein agreement karna padta hai ki wo kaun sa encryption formula aur kaun si keys use karenge. Iske liye **IKE (Internet Key Exchange)** protocol ka use hota hai.
+
+**Step 1: Connection Request Inititate Hona**:
+- Aapke office ka router (Customer Gateway) AWS ke VPN IP par ek request bhejta hai: "Mujhe tumse ek secure tunnel banani hai."
+
+**Step 2: Identity Verify Karna (Authentication)**:
+- Dono routers ek dusre se Pre-Shared Key (PSK) ya Certificates maangte hain. Agar dono side par password match ho jata hai, toh hi process aage badhta hai, nahi toh connection vahin reject ho jata hai.
+
+**Step 3: Management Tunnel Banana (IKE Phase 1)**:
+- Dono devices Diffie-Hellman (DH) algorithm ka use karke internet par ek temporary secret key aapas mein share karte hain. Is key se ek temporary secure raasta ban jata hai jise Management Tunnel kehte hain.
+
+**Step 4: Real Data Tunnel Banana (IKE Phase 2)**:
+- Ab us safe Management Tunnel ke andar baithkar dono routers real data ko encrypt karne ke rules decide karte hain. Yahan par final IPsec Security Association (SA) tunnel banti hai. Ab setup complete ho chuka hai aur real data transfer ke liye tunnel taiyar hai.
+
+<br>
+
+**Part 2: Real-Time Data Encryption**:
+
+Maan lijiye ab aapke office ke kisi computer se AWS ke EC2 instance par data bheja ja raha hai. Ab har ek packet ke sath ye exact steps chalenge:
+
+**Step 5: Packet ka Router Par Pahunchna**:
+- Aapke office ke computer se ek normal data packet nikalta hai aur office ke main firewall/router par pahunchta hai. Is packet par likha hota hai: Source: Office Computer IP -> Destination: AWS EC2 Private IP.
+
+**Step 6: Encryption Process (AES-256)**:
+- Office ka router dekhta hai ki ye data AWS jana hai. Wo pure packet ko uthata hai aur **AES-256 bit encryption** algorithm lagakar use ek unreadable code (Ciphertext) mein badal deta hai. Ab iske andar ka data ya original private IPs koi nahi dekh sakta.
+
+**Step 7: Encapsulation (ESP Header Lagana)**:
+- Router is encrypted code ke aage ek ESP (Encapsulating Security Payload) Header aur peeche ek ESP Trailer laga deta hai. Yeh ek tarah se data ko ek naye secure lifafe (envelope) mein pack karne jaisa hai.
+
+**Step 8: Naya Public IP Header Lagana**:
+- Kyunki original private IPs encrypt ho chuki hain, isliye internet routers ko rasta dikhane ke liye office ka router ek naya Public IP Header upar se chipka deta hai. Is naye header par likha hota hai: Source: Office Public IP -> Destination: AWS VPN Public IP.
+
+**Step 9: Tampering Check Lagana (Hashing/HMAC)**:
+- Packet ke sabse end mein ek digital signature (Hash value) lagaya jata hai SHA-256 ka use karke. Isse ye guarantee milti hai ki internet par travel karte waqt koi hacker packet mein koi badlav na kar sake.
+
+**Step 10: Internet par Travel**:
+- Ab ye fully packed aur secure packet aapke office se nikal kar public internet ke throug AWS ki taraf travel karta hai. Agar raste mein koi ise chura bhi le, toh use andar ka kuch samajh nahi aayega.
+
+**Step 11: AWS Par Entry aur Verification**:
+- Packet AWS ke Virtual Private Gateway (VGW) par pahunchta hai. AWS sabse pehle Step 9 wale digital signature ko check karta hai. Agar signature sahi hai (matlab packet ke sath koi chhedchhad nahi hui), toh AWS use accept karta hai.
+
+**Step 12: Decryption aur Delivery**:
+- AWS ka gateway apni secret key ka use karke packet ko decrypt karta hai (lifafa kholta hai). Naya public header aur ESP header hat jata hai aur original packet bahar aa jata hai. Ab AWS ko original private IP dikh jati hai aur wo data ko VPC ke andar sahi EC2 instance tak delivered kar deta hai.
+
