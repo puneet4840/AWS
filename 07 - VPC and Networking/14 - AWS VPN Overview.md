@@ -348,3 +348,52 @@ Maan lijiye ab aapke office ke kisi computer se AWS ke EC2 instance par data bhe
 **Step 12: Decryption aur Delivery**:
 - AWS ka gateway apni secret key ka use karke packet ko decrypt karta hai (lifafa kholta hai). Naya public header aur ESP header hat jata hai aur original packet bahar aa jata hai. Ab AWS ko original private IP dikh jati hai aur wo data ko VPC ke andar sahi EC2 instance tak delivered kar deta hai.
 
+<br>
+<br>
+
+### Site-to-Site VPN kaise setup karte hain?
+
+AWS Site-to-Site VPN ko complete setup karne ke liye in steps ko follow karein:
+
+**Step-1: AWS Side Par Prerequisites Tyar Karein**:
+- Pehle check karein ki aapka AWS VPC ready hai aur usme subnets baney hue hain.
+- Aapko apne on-premises firewall/router ka Public IP Address pata hona chahiye.
+
+**Step-2: Customer Gateway (CGW) Create Karein**:
+- AWS Management Console mein VPC Dashboard par jayein.
+- Left sidebar mein Customer Gateways par click karein aur Create Customer Gateway choose karein.
+- Ek naam dein aur IP Address field mein apne office firewall ka Public IP dalein.
+- Routing mein Dynamic (BGP use karne ke liye) ya Static choose karein.
+
+**Step-3: Virtual Private Gateway (VGW) Create Aur Attach Karein**:
+- Left sidebar mein Virtual Private Gateways par click karein.
+- Create Virtual Private Gateway par click karein, naam dein aur create karein.
+- Ab us VGW ko select karke Actions par jayein aur Attach to VPC par click karke apna VPC select karein.
+
+**Step-4: VPN Connection Create Karein**:
+- Left sidebar mein Site-to-Site VPN Connections par jayein.
+- Create VPN Connection par click karein.
+- Target Gateway Type mein Virtual Private Gateway select karein aur apna VGW choose karein.
+- Customer Gateway mein Existing select karke apna banaya hua CGW select karein.
+- Routing options mein apne on-premises network ka IP range (CIDR) dalein (agar static routing select ki thi).
+- Create VPN Connection par click karein. Isko Available hone mein 5-10 minutes lagenge.
+
+**Step-5: Configuration File Download Karein**:
+- Jab VPN Connection ka status Available ho jaye, toh use select karein.
+- Upar Download Configuration button par click karein.
+- Apne on-premises firewall ka Vendor (jaise Cisco, Fortinet, etc.) aur Software Version select karke file download karein. Is file mein pre-shared keys aur AWS tunnel ke IP addresses hote hain.
+
+**Step-6: On-Premises Firewall Configure Karein**:
+- Download ki gayi configuration file ko open karein.
+- Apne office ke firewall/router dashboard mein login karein.
+- File mein diye gaye instructions ke mutabik IPsec Tunnels, Pre-shared keys, Phase 1 aur Phase 2 policies ko configure karein.
+
+**Step-7: Route Tables Aur Security Groups Update Karein**:
+- AWS Route Tables: Apne VPC ke Route Table mein jayein. Route Propagation tab par click karke Edit route propagation karein aur Enable par check lagayein. Isse AWS aapke office ke routes automatic sikh lega.
+- Security Groups: Apne AWS EC2 instances ke Security Group mein on-premises network ke IP range (CIDR) se traffic allow (Inbound Rules) karein.
+
+**Step-8: Verifying the Connection**:
+- Setup complete hone ke baad AWS VPN dashboard mein Tunnel Details tab check karein.
+- Dono tunnels ka status UP dikhna chahiye.
+- Aap apne office ke kisi computer se AWS ke private IP ko ping karke connection test kar sakte hain.
+
