@@ -459,3 +459,12 @@ Maan lijiye aapki company ka setup do regions mein hai: **Mumbai Region (ap-sout
 
 **4. AWS Backbone Routin**g: Yeh peering connection public internet par nahi jata. AWS apne khud ke under-sea aur land-based fiber optic cables (Global Backbone Network) ka use karta hai, jisse latency bohot kam milti hai aur security maximum hoti hai.
 
+<br>
+<br>
+
+### Pricing Framework
+
+AWS Transit Gateway free nahi hai. Iski pricing do cheezon par depend karti hai:
+- **Hourly Charge**: Har ek attachment (VPC, VPN, ya Direct Connect) ke liye aapko per hour fix charge dena hota hai (chahe traffic move ho ya na ho).
+- **Data Processing Charge**: Har 1 GB data jo TGW se hokar guzarata hai, us par per-GB processing fee lagti hai. Tip: Agar aap intra-AZ traffic move kar rahe hain bina TGW ke, to peering sasti padti hai.
+
