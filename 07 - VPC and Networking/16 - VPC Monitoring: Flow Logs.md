@@ -506,3 +506,96 @@ Pata Kaise Chala? Isko network language mein Brute Force Attack kehte hain, jaha
 **S3 Lifecycle Rules**: Flow logs ka data bohot tezi se badhta hai aur hazaron GBs tak pahunch sakta hai. Isliye agar aap S3 use kar rahe hain, toh ek rule laga dein ki 30 din purane logs automatically delete ho jayein ya Glacier (saste storage) mein chale jayein, taaki bill control mein rahe.
 
 **AWS Athena for Analysis**: Agar S3 mein bohot saara logs data jama ho gaya hai, toh aap Amazon Athena service ka use karke usme SQL queries chala sakte hain (jaise: SELECT * WHERE action='REJECT'), jisse bade data mein se kaam ki cheez nikalna bohot aasan ho jata hai.
+
+<br>
+<br>
+
+### Flow Logs kaise setup kare
+
+**Prerequisites (IAM Configuration)**:
+
+Agar aap destination CloudWatch Logs choose karte hain, toh VPC service ko permissions dene ke liye ek IAM Role create karna padega. S3 ke liye role ki zaroorat nahi hoti, wahan bucket policy modify hoti hai.
+
+**CloudWatch Logs ke liye IAM Role Setup**:
+- IAM Console par jaakar Create Role par click karein.
+- Trusted Entity Type mein Custom Trust Policy select karein aur yeh JSON paste karein taaki VPC service is role ko assume kar sake:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "://amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+- Permissions Policy attach karne ke liye ek inline policy create karein jismein yeh permissions hon:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+- Role ko ek name dein (e.g., VPCFlowLogsToCloudWatchRole) aur create kar dein.
+
+<br>
+
+Step-by-Step Setup via AWS Management Console
+
+**Step 1: Resource Select Karein**:
+- AWS VPC Console open karein.
+- Left navigation pane mein Your VPCs, Subnets, ya Network Interfaces par click karein (jis level par bhi aapko log enable karna ho).
+- Resource list se specific resource ko select karein.
+- Neeche diye gaye tabs mein se Flow logs tab select karein aur Create flow log par click karein.
+
+**Step 2: Basic Settings Configure Karein**
+- Name: Flow log configuration ka ek unique name enter karein.
+- Filter: Requirement ke mutabik select karein:
+  - ALL (Accept aur Reject dono traffic ke liye).
+  - ACCEPT (Sirf allowed traffic).
+  - REJECT (Sirf blocked traffic).
+ 
+- Maximum aggregation interval: Data aggregation ka time window select karein:
+  - 1 minute (Real-time troubleshooting aur critical workloads ke liye recommended).
+  - 10 minutes (Default, cost-effective storage ke liye).
+ 
+**Step 3: Destination Configure Karein**
+
+Yahan aapko do primary options milenge:
+- Option A: Send to CloudWatch Logs.
+  - Destination: Send to CloudWatch Logs select karein.
+  - Destination log group: Ek existing CloudWatch Log Group select karein ya new create karne ke liye log group ka naam type karein.
+  - IAM role: Prerequisites mein create kiya gaya IAM Role (VPCFlowLogsToCloudWatchRole) select karein.
+ 
+- Option B: Send to an S3 bucketDestination:
+  - Send to an Amazon S3 bucket select karein.
+  - S3 bucket ARN: Apne target S3 bucket ka Amazon Resource Name enter karein (Format: arn:aws:s3:::your-bucket-name).
+  - Log file format: Select karein:
+    - AWS-provided default format (Version 2 format).
+    - Custom format (Agar aapko TCP flags, vpc-id, ya pkt-srcaddr jaise attributes manually select karne hain).
+   
+  - Hive-compatible S3 prefix: Isko Enable karein agar aap Amazon Athena query use karne wale hain (Yeh folder structure ko year=YYYY/month=MM/ format mein organize karta hai).
+  - Partition logs by time: Isko Every 1 hour ya Every 24 hours par set karein analytics granularity ke hisab se.
+ 
+**Step 4: Finalize**
+- Page ke end mein Create flow log button par click karein.
+- Status checking ke liye flow logs tab mein check karein, status Active show hona chahiye.
+
