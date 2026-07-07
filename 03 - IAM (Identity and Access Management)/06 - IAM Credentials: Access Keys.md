@@ -199,3 +199,14 @@ Purani keys ko safely rotate karne ke liye is engineering sequence ko follow kiy
 - Purani key (V1) ka status badal kar Inactive karein taaki testing confirm ho sake.
 - Verification complete hone ke baad purani key (V1) ko permanently Delete kar dein.
 
+<br>
+<br>
+<br>
+
+## LAB: Create IAM user access key
+
+Steps:
+- Login to AWS account using Root user or IAM admin user.
+- Go to IAM console -> Users -> Select the user for which IAM access key to be created.
+- Go to Security Credentials -> Access Keys -> Create access key -> Save the keys locally.
+
