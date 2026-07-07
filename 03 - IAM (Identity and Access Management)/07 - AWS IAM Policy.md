@@ -18,6 +18,43 @@ AWS mein, by default har resource ka access Implicitly Denied hota hai. Jab tak 
 <br>
 <br>
 
+### Sabse pehle problem samajhte hain
+
+Maan lo tumhari company mein ek naya employee join karta hai. Uska naam hai **Rahul**.
+
+Tum AWS Console mein Rahul ke liye ek IAM User create kar dete ho.
+```
+IAM User
+
+↓
+
+Rahul
+```
+
+Ab Rahul successfully AWS Console mein login kar leta hai.
+
+Ab sawal aata hai.
+- Kya Rahul EC2 launch kar sakta hai?
+- Kya Rahul S3 Bucket delete kar sakta hai?
+- Kya Rahul IAM User bana sakta hai?
+
+Answer hai...
+
+**Abhi nahi**.
+
+<br>
+
+**Kyun nahi?**
+
+Kyunki sirf IAM User banana kaafi nahi hai. IAM User banana sirf identity create karta hai.
+
+AWS ko abhi bhi ye nahi pata ki Rahul ko kya permission deni hai.
+
+Isi problem ko solve karne ke liye AWS ne **IAM Policy** introduce ki.
+
+<br>
+<br>
+
 ### AWS Mein Authentication Aur Authorization Ka Complete Flow
 
 Jab bhi koi user, role, application, script ya service AWS ke kisi resource ko access karne ki request bhejti hai, tab AWS us request ko directly execute nahi karta.
@@ -155,3 +192,194 @@ Is situation mein AWS response deta hai:
 Yaani authentication pass ho gaya.
 
 Lekin authorization fail ho gaya.
+
+<br>
+<br>
+
+### IAM Policy Ka Basic Structure
+
+Ek basic IAM Policy kuch is tarah dikhti hai:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket/*"
+    }
+  ]
+}
+```
+
+OR
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ],
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": "192.168.1.1/32"
+        }
+      }
+    }
+  ]
+}
+```
+
+Ab is structure ke har field ko detail mein samajhte hain.
+
+**1. Version**:
+
+Bahut log sochte hain ki ye IAM Policy ka version number hai. Lekin aisa nahi hai.
+
+Ye actually Policy Language Version hota hai.
+
+Ye AWS ko batata hai ki policy kis policy language syntax ko follow kar rahi hai.
+
+Abhi AWS jo latest policy language use karta hai uska version hai:
+```
+2012-10-17
+```
+Almost har modern IAM Policy mein yehi value use hoti hai.
+
+Version Ka Role:
+- Jab AWS policy ko parse karta hai, tab sabse pehle Version field dekhta hai.
+- Isse AWS ko pata chalta hai ki policy ko kis syntax rules ke according interpret karna hai.
+- Agar Version field missing ho ya unsupported ho, to policy expected tarike se evaluate nahi hogi.
+
+<br>
+
+**2. Statement**:
+
+Statement ek array hota hai jiske ander permissions define karte hain. Ek policy mein multiple statements ho sakte hain.
+
+Example:
+```
+"Statement": [
+   { ... },
+   { ... },
+   { ... }
+]
+```
+Har Statement independently evaluate hota hai.
+
+Statement Ka Role:
+
+Statement AWS ko batata hai:
+- Kya allow karna hai.
+- Kya deny karna hai.
+- Kaunsa action control karna hai.
+- Kis resource par control karna hai.
+- Kis condition mein control karna hai.
+
+Statement Ke Andar Ka Structure:
+
+Har Statement ke andar generally ye fields hoti hain:
+```
+{
+  "Effect": "...",
+  "Action": "...",
+  "Resource": "...",
+  "Condition": { ... }
+}
+```
+
+<br>
+
+**3. Effect**:
+
+Effect ka matlab hai ki policy ko allow karna hai ya deny.
+
+Iski value ya toh ```"Allow"``` hogi ya ```"Deny"```. Aap access dena chahte hain ya rokna chahte hain, yeh yahan decide hota hai.
+
+<br>
+
+**4. Action**:
+
+Action field ka matlab hai ki resource par konsa action perform karna hai. Jaise S3 bucket ko read, write ya delete kar sakte hain is policy mein.
+
+Jaise ec2 instance run karna, create karna.
+
+Example-1:
+```
+"Action": "ec2:RunInstances"
+```
+Iska matlab: Ye statement sirf EC2 instance create karne wale API operation ke liye applicable hai.
+
+Example-2:
+```
+"Action": "s3:GetObject"
+```
+Yaani S3 bucket ke liye sirf object read karne ki permission.
+
+Example-3: 
+```
+"Action": "lambda:InvokeFunction"
+```
+Yaani Lambda invoke karne ki permission.
+
+Kabhi-kabhi multiple Actions ko ek saath Allow ya Deny karna hota hai. Uske liye wildcard use hota hai.
+
+Example:
+```
+"Action": "s3:*"
+```
+Iska matlab s3 bucket ke liye saare operation.
+
+<br>
+
+**5. Resource**:
+
+Resource field batata hai ki permission kis AWS Resource par apply hogi.
+
+AWS har resource ko uniquely identify karne ke liye ARN use karta hai.
+
+AWS ke andar har resource (S3 bucket, EC2 instance, IAM role, etc.) ka ek unique “address” hota hai — usi ko ARN bolte hain.
+
+Jaise Azure mein resource id hoti hai resource ko identify karne ke liye vaise ki aws mein ARN hota resource ko identify karne ke liye.
+
+Example:
+```
+"Resource":
+"arn:aws:s3:::company-data/*"
+```
+Yaani policy sirf is bucket ke objects par apply hogi.
+
+<br>
+
+**6. Condition**:
+
+Condition optional field hai.
+
+Har policy mein Condition hona zaroori nahi hai.
+
+Condition additional restrictions define karti hai.
+
+Kabhi-kabhi AWS bolta hai. Permission hamesha mat do. Sirf kuch Conditions True hone par do.
+
+Jaise:
+- Specific IP Address request aane par policy allow karo.
+- Specific Region se hone par policy allow karo.
+- MFA enable hone par. Agr user ka MFA enable hai tabhi policy allow karo.
+- Particular Time Window ke andar.
+
+Agar Condition satisfy nahi hoti, to policy apply nahi hogi. Condition true hone par hi policy apply hoti hai.
+
+<br>
+<br>
+
+### IAM Policy Ke Types
