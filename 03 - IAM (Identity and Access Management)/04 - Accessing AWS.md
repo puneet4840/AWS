@@ -79,6 +79,9 @@ Kiske liye best hai:
 Drawback: 
 - Isme automation nahi ho sakta. Agar aapko 50 servers banane hain, toh aap console par baith kar 50 baar click nahi kar sakte, isme bohot time kharab hoga.
 
+IAM Credential:
+- Apko Username aur Password use karne hote hain Console par login karne ke liye.
+
 <br>
 
 **2. AWS CLI (Command Line Interface)**:
@@ -90,6 +93,9 @@ Isme browser ki jagah tum terminal use karte ho.
 Yeh ek open-source tool hai jise aap apne local computer (Windows, Mac, Linux) ke terminal ya command prompt par install karte hain.
 
 Isme login karne ke liye password nahi, balki aapke IAM User ki Access Key ID aur Secret Access Key ki zaroorat hoti hai. Ek baar setup (aws configure) hone ke baad, aap seedhe commands likhkar AWS ko control karte hain.
+
+IAM Credentials:
+- CLI ke through AWS par login karne ke liye apko IAM User ki Access Key ID aur Secret Access Key use karni hoti hai.
 
 **Example**:
 
@@ -133,6 +139,9 @@ Jaise:
 - Ruby
 
 Aap isko apne code mein library ki tarah import karte hain. Isme bhi authentication ke liye Access Keys ya IAM Roles ka use hota hai. Aapka application code seedhe AWS API endpoints par secure requests bhejta hai.
+
+IAM Credentials:
+- SDK ke through AWS par login karne ke liye apko IAM User ki Access Key ID aur Secret Access Key use karni hoti hai.
 
 Kiske liye best hai:
 - Developers ke liye jo cloud-native applications bana rahe hain.
