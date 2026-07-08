@@ -383,3 +383,5 @@ Agar Condition satisfy nahi hoti, to policy apply nahi hogi. Condition true hone
 <br>
 
 ### IAM Policy Ke Types
+
+Aage ki slide mein hum IAM policy ke types ko samjhenge.
