@@ -79,6 +79,130 @@ Agar aapka code ya script kisi AWS ke server (EC2 instance) ke andar chal raha h
 Isliye is jab aap kisi AWS resource jaise EC2 instance mein AWS CLI ka use kar rahe ho to IAM Role ka use karo, AWS CLI ko authenticate karne ke liye.
 
 Solution: 
-- Aap ek IAM Role banate hain aur use EC2 instance par attach kar dete hain.
-- Piche AWS ka Instance Metadata Service (IMDSv2) kaam karta hai. AWS CLI automatically is metadata service se temporary, short-lived credentials (jo har thodi der mein badalte rehte hain) utha leta hai. Aapko koi key configure karne ki zaroorat nahi padti.
+- Aap ek **IAM Role** banate hain aur use EC2 instance par attach kar dete hain.
+- Piche AWS ka **Instance Metadata Service (IMDSv2)** kaam karta hai. AWS CLI automatically is metadata service se temporary, short-lived credentials (jo har thodi der mein badalte rehte hain) utha leta hai. Aapko koi key configure karne ki zaroorat nahi padti.
+
+<br>
+<br>
+
+### Step 3: AWS CLI Ko Configure Karna (Access Key method)
+
+Agar aapne IAM User ke liye Access Keys create kar li hain to ye step follow karna hai.
+
+Ab aapko apne computer ke terminal ko batana hai ki aap kaun se AWS account aur keys ka use karna chahte hain.
+
+Terminal mein yeh command chalayein:
+```
+aws configure
+```
+
+Yeh aapse chaar cheezein poochega, aapko unhe fill karna hai:
+- **AWS Access Key ID**: (Apni access key paste karein).
+- **AWS Secret Access Key**: (Apni secret key paste karein).
+- **Default region name**: (Jis region mein kaam karna hai, jaise Mumbai ke liye ```ap-south-1``` ya N. Virginia ke liye ```us-east-1```).
+- **Default output format**: (Hamesha ```json``` type karein).
+
+Yeh saari details aapke computer ke home folder mein ek hidden folder ```.aws``` ke andar ```credentials``` aur ```config``` naam ki files mein save ho jati hain.
+
+<br>
+<br>
+
+### Configuration & Multi-Profile Management
+
+Jab aap terminal par ```aws configure``` chalate hain, toh piche kya hota hai?
+
+Aapke operating system ke home directory mein ek hidden folder banta hai: ```~/.aws/``` (Linux/Mac) ya ```C:\Users\Username\.aws\``` (Windows). Iske andar do files hoti hain:
+- **credentials file**: Isme aapki access keys secure save hoti hain.
+- **config file:** Isme aapka default region (jaise ```ap-south-1```) aur output format (```json```, ```text```, ya ```table```) save hota hai.
+
+<br>
+
+**Advance Concept: Named Profiles (Multi-Account Setup)**:
+
+Agar apko AWS CLI ke through sirf ek AWS Account mein kaam karna hai to aap normal kar sakte hain. Lekin agar apke paas multiple AWS Accounts hain, aur un accounts mein ek saath kaam karna hai to apko ek ke aws cli se logout karna hoga aur fir dusre account mein login karke aap aws cli ka use kar paoge.
+
+Lekin AWS CLI ek feature deta hai **Named Profiles**.
+
+Agar aap ek se zyada AWS accounts par kaam karte hain (jaise ek Production Account aur ek Testing Account), toh aap Named Profiles ka use karte hain.
+
+Jab aap aws account configure karte hain to apko ```aws configure``` command mein ek flag ```--profile``` dena hai.
+
+Aap configuration ke samay ```--profile``` flag lagate hain:
+```
+aws configure --profile testing
+aws configure --profile production
+```
+
+Ab jab aapko testing account mein buckets dekhne hon, toh aap command aise chalayenge:
+```
+aws s3 ls --profile testing
+```
+
+Aur agar production mein kuch check karna ho:
+```
+aws s3 ls --profile production
+```
+
+Isse aapko baar-baar login-logout karne ki zaroorat nahi padti.
+
+<br>
+<br>
+
+### Mastering AWS CLI Commands Structure
+
+AWS CLI commands ka ek standard structure hota hai jise samajhna bohot zaroori hai:
+```
+aws <service_name> <operation_name> [parameters] [flags]
+```
+
+Aaiye is structure ke kuch advance aur real-world examples dekhte hain:
+
+**1. EC2 Instance Create Karna (With Details)**:
+```
+aws ec2 run-instances \
+    --image-id ami-0c55b159cbfafe1f0 \
+    --count 1 \
+    --instance-type t2.micro \
+    --key-name my-laptop-key \
+    --security-group-ids sg-0123456789abcdef0 \
+    --subnet-id subnet-01234567
+```
+Yahan humne control plane ko command di ki is specific subnet aur security group ke andar ek t2.micro server launch karo.
+
+<br>
+
+**2. Advanced S3 Operations (Sync Command)**:
+
+AWS CLI mein S3 ke liye do tarah ke commands hote hain: ```s3``` (high-level) aur ```s3api``` (low-level). ```s3 sync``` ek bohot hi powerful command hai jo backup ke liye use hoti hai.
+```
+aws s3 sync /home/user/my_project_folder s3://my-backup-bucket-2026/project
+```
+Yeh command aapke local folder aur S3 bucket ko compare karegi. Sirf wahi files upload hongi jo nayi hain ya jinme badlav hua hai. Yeh bilkul rsync jaisa kaam karta hai.
+
+<br>
+<br>
+
+### Filtering and Querying Output (--query aur --output)
+
+AWS CLI jab response deta hai, toh wo bohot bada JSON block hota hai. Pure JSON mein se sirf kaam ki information nikalne ke liye AWS CLI ke paas do powerful flags hain: ```--query``` (jo JMESPath query language ka use karta hai) aur ```--output```.
+
+**Example: Mujhe sirf chal rahe (running) EC2 instances ki IDs aur Public IPs chahiye, baaki ka kachra JSON nahi chahiye.**
+```
+aws ec2 describe-instances \
+    --query "Reservations[*].Instances[*].{ID:InstanceId,IP:PublicIpAddress}" \
+    --output table
+```
+
+**Iska Fayda**: Screen par JSON ke bajaye ek saaf-suthra Text Table ban kar aayega jisme sirf Instance ID aur Public IP likha hoga. Is output ko aap aage kisi shell script mein variable ke andar store kar sakte hain.
+
+<br>
+<br>
+
+### CLI Security Best Practices
+
+**Least Privilege Principle**: CLI user ko kabhi bhi AdministratorAccess nahi dena chahiye. Agar aapka laptop chori ho gaya ya malware aa gaya, toh aapka poora AWS account khatre mein pad jayega. CLI user ko sirf utni hi permission dein jitni uske script ko zaroorat hai.
+
+**MFA (Multi-Factor Authentication) with CLI**: Aap CLI par bhi MFA enforce kar sakte hain. Iske liye aapko aws sts get-session-token command ka use karke temporary credentials lene padte hain jab aap apna Google Authenticator ka 6-digit code enter karte hain.
+
+**Automatic Key Rotation**: CLI ki Access Keys ko har 90 din mein badalna (rotate karna) industry ka standard rule hai.
 
