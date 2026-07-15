@@ -152,7 +152,7 @@ echo "<h1>Hello from High Performance Server A (NLB Node)</h1>" | sudo tee /usr/
 
 **Server B (Private Subnet 1B)**:
 - Firse **Launch instances** par click karein.
-- **Name**: ``NLB-Backend-B``` | AMI/Instance Type/Key pair same rakhein.
+- **Name**: ```NLB-Backend-B``` | AMI/Instance Type/Key pair same rakhein.
 - **Network settings** ke saamne Edit par click karein:
   - **VPC**: ```nlb-production-vpc```.
   - **Subnet**: Is baar dropdown se chunein ```nlb-priv-1b``` (Zone B ka private subnet).
@@ -174,3 +174,52 @@ echo "<h1>Hello from High Performance Server B (NLB Node)</h1>" | sudo tee /usr/
 
 ### Step 7: Create TCP Target Group
 
+Kyunki NLB application data nahi padhta, iska network rule HTTP ki jagah raw TCP use karta hai.
+
+- Left menu se **Target Groups** par jayein -> **Create target group**.
+- **Choose a target type**: ```Instances``` select karein.
+- **Target group name**: ```nlb-production-tg```.
+- **Protocol** : **Port**: Isko dropdown se badal kar TCP select karein. Port 80 hi rehne edin.
+- **VPC**: Dropdown se apna ```nlb-production-vpc``` chunein (Yeh zaroori hai, varna servers list mein nahi aayenge). Next par click karein.
+- **Register targets** page par apne dono backend instances (```NLB-Backend-A``` aur ```B```) ke samne checkbox par tick lagayein, thoda upar bane button **Include as pending below** par click karein, aur niche **Create target group** par click kar dein.
+
+<br>
+<br>
+
+### Step 8: Create Network Load Balancer (Assigning Fixed IPs)
+
+Ab hum apna main Network Layer load manager deploy karenge aur use hamari reserved Elastic IPs assign karenge.
+
+- Left menu se **Target Groups** ke theek upar **Load Balancers** par click karein.
+- Top left mein **Create load balance**r button par click karein.
+- **Network Load Balancer** ke niche bane **Create** button par click karein.
+- **Load balancer name**: ```production-highspeed-nlb```.
+- **Scheme**: ```Internet-facing``` | IP address type: IPv4.
+- **Network mapping (Sabse Important Step)**:
+  - **VPC**: Dropdown se apna ```nlb-production-vpc``` chunein.
+  - **Mappings**: Yahan hum dono public subnets select karenge aur unhe step 4 mein banayi hui Static Elastic IPs denge:
+    - **Zone 1a**: Check box par tick karein. Subnet mein chunein ```nlb-pub-1a```. IPv4 address dropdown mein select karein: ```Use an Elastic IP``` aur list se apni pehli Elastic IP select kar lein.
+    - **Zone 1b**: Check box par tick karein. Subnet mein chunein ```nlb-pub-1b```. IPv4 address dropdown mein select karein: ```Use an Elastic IP``` aur list se apni doosri Elastic IP select kar lein.
+   
+- **Listeners and routing**:
+  - Protocol automatic ```TCP``` hoga aur Port ```80``` select rehne edin.
+  - Default action ke aage dropdown se apna naya Target Group ```nlb-production-tg``` select kar lein.
+
+- Sabse neeche jaakar **Create load balancer** par click kar dein.
+
+<br>
+<br>
+
+### Step 9: Production Live Verification (Testing via Static Numeric IP)
+
+Network Load Balancer ko fully active hone mein 2 se 3 minute ka samay lagta hai kyunki yeh AWS backend networks par core network pipelines map karta hai.
+
+- Load Balancer list mein apne ```production-highspeed-nlb``` ka status dekhein, jab woh orange se green color mein Active ho jaye, tab aage badhein.
+- Ab aapko iska lamba DNS name copy karne ki koi zaroorat nahi hai. Aapne Network Mapping mein jo do Elastic IPs lagayi thin, unme se kisi bhi ek numeric IP ko copy kar lein (Jaise hamari static public IP thi: ```13.232.45.10```).
+- Apne laptop par ek naya browser tab kholein aur seedhe us numeric IP ko manually ```http://``` lagakar enter karein:```http://13.232.45.10```.
+
+**Output Check**:
+- **Hit 1**: Screen par seedhe aayega: ```Hello from High Performance Server A (NLB Node)```.
+- Refresh (F5) ya Incognito Mode: Jab aap refresh karenge, toh traffic bina kisi protocol check ke super-fast raw speed (microseconds latency) se execute hota hua alternate node par hit karega aur aapko dikhega: ```Hello from High Performance Server B (NLB Node)```.
+
+Aapne successfully bank ki requirement puri kar di hai—unhe 2 fixed permanent public IPs bhi mil gayi hain, aur aapke web servers internet se safely private zone mein chhupkar chal rahe hain!
