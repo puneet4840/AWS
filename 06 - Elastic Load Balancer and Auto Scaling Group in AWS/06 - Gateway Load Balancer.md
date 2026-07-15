@@ -24,7 +24,7 @@ In sab se traffic ke packet ko inspect karwake fir destination par bhejta hai.
 
 **Diagram**:
 
-<img src="https://drive.google.com/uc?export=view&id=1gbcIEp-mb4wg07kCqRUIhpIo3zlHDGeJ" width="85000" height="430">
+<img src="https://drive.google.com/uc?export=view&id=1gbcIEp-mb4wg07kCqRUIhpIo3zlHDGeJ" width="850" height="430">
 
 <br>
 
