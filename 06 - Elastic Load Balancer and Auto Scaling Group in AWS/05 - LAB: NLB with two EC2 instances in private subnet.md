@@ -223,3 +223,80 @@ Network Load Balancer ko fully active hone mein 2 se 3 minute ka samay lagta hai
 - Refresh (F5) ya Incognito Mode: Jab aap refresh karenge, toh traffic bina kisi protocol check ke super-fast raw speed (microseconds latency) se execute hota hua alternate node par hit karega aur aapko dikhega: ```Hello from High Performance Server B (NLB Node)```.
 
 Aapne successfully bank ki requirement puri kar di hai—unhe 2 fixed permanent public IPs bhi mil gayi hain, aur aapke web servers internet se safely private zone mein chhupkar chal rahe hain!
+
+<br>
+<br>
+<br>
+
+## Issues:
+
+### Issue-1: Jab maine elastic ips browser mein daali to webserver ka reponse nhi dikh rha hai
+
+Elastic IP hit karne par webserver ka response nahi aa raha hai, iski 99% wajah Network Load Balancer (NLB) ka ek unique behavior hai jise Client IP Preservation kehte hain.
+
+ALB ke case mein load balancer traffic ko apna bankar bhejta hai, par NLB internet se aane wale packet ke Client IP (aapke laptop ka public IP) ko bilkul change nahi karta aur use as-it-is server par forward kar deta hai.
+Is wajah se humne jo web-server-sg mein 172.16.0.0/16 (VPC CIDR) allow kiya tha, woh fail ho raha hai kyunki server ke paas request aapke laptop ke IP se aa rahi hai, na ki VPC ke IP se.
+
+Ise immediate fix karne ke liye humare paas do methods hain. Aap kisi bhi ek tareeqe se ise abhi thik kar sakte hain:
+
+**Method 1: Target Group Se "Client IP Preservation" Disable Karna (Sabse Aasan & Fast)**:
+
+Agar aapko servers par users ka asli public IP dekhne ki zaroorat nahi hai, toh aap NLB ko bol sakte hain ki woh apni private IP se traffic server ko bheje. Isse hamara pura purana security group setup turant kaam karne lagega.
+- AWS Console mein Target Groups par jayein.
+- Apne banaye hue target group (```nlb-production-tg```) par click karein.
+- Andar jaakar Attributes tab par click karein, aur right side mein Edit button par click karein.
+- Connection settings ke andar aapko ek option dikhega: **Preserve client IP addresses**.
+  - Yeh checkbox pehle se tick (enabled) hoga. Isko Uncheck (Disable) kar dein.
+  - Niche jaakar Save changes par click kar dein.
+  - Ab 10-15 seconds wait karein aur browser mein apni Elastic IP firse hit karein. Aapki website 100% chal jayegi!
+ 
+<br>
+
+**Method 2: Web Server Ka Security Group Badlana (Production Standard)**:
+
+Agar aap chahte hain ki NLB ki speed barkarar rahe aur servers ko user ka asli IP pata chalta rahe (jaise logs analysis ke liye), toh aapko server ke security group ko poori duniya ke liye open karna padega, kyunki internet se koi bhi client website hit kar sakta hai.
+- EC2 Dashboard -> Security Groups par jayein.
+- Apne backend server ka security group (nlb-web-server-sg) select karein.
+- Inbound Rules tab par jaakar Edit inbound rules par click karein.
+- Jo rule pehle Custom -> 172.16.0.0/16 tha, use badal kar select karein:
+  - Source: Anywhere-IPv4 (0.0.0.0/0).
+ 
+- Save rules par click kar dein.
+- Browser mein jaakar page refresh karein, response turant show ho jayega.
+
+**Security Note**: Aap sochenge ki 0.0.0.0/0 (Anywhere) karne se server unsafe ho gaya? Nahi! Kyunki aapke EC2 servers strictly Private Subnets mein hain, internet se koi bhi insaan unke private IP par direct attack nahi kar sakta. Traffic hamesha NLB ke port 80 se chhan kar hi un tak pahunchega.
+
+
+<br>
+<br>
+
+### Issue-2: Jab maine Elastic ips aur NLB ka dns name browser mein hit kiya to server ka response change nhi ho rha tha. Jabki ALB har refersh par dusre server ka response dikh rha tha.
+
+Aapka yeh observation bilkul sahi hai, aur aapka setup bilkul perfect kaam kar raha hai! Yeh koi error ya bug nahi hai, balki Network Load Balancer (NLB) ke kaam karne ka core fundamental mechanism (background behavior) hai.
+
+Jab hum browser ko refresh karte hain, toh Application Load Balancer (ALB) turant server badal deta hai, par Network Load Balancer (NLB) aisa nahi karta. Iske piche 3 main production reasons hain:
+
+**Reason 1: TCP Connection Re-use (Keep-Alive)**:
+
+Application Load Balancer (ALB) har ek request ke data ko layer 7 par khol kar padhta hai aur har refresh ko ek naya block maanta hai.Lekin Network Load Balancer (NLB) Layer 4 पर kaam karta hai. Jab aap browser mein IP ya DNS hit karte hain, toh aapka laptop aur NLB ke beech ek TCP Connection (Socket) khul jata hai.
+
+- Modern browsers (jaise Chrome) performance badhane ke liye Keep-Alive feature use karte hain.
+- Jab aap browser mein Refresh dabaate hain, toh browser naya connection kholne ke bajay usi purane khule hue TCP connection ke andar hi request dobara bhej deta hai.
+- NLB ka rule hai: "1 TCP Connection = 1 Target Server". Jab tak woh purana connection zinda hai, NLB aapke refresh karne par bhi traffic ko usi same server par bhejta rahega.
+
+<br>
+
+**Reason 2: NLB Ka Flow-Hash Algorithm**:
+
+NLB traffic ko route karne ke liye 5-Tuple Hash Algorithm ka use karta hai. Yeh hash in 5 cheezon se banta hai:
+- Source IP (Aapke laptop ka Public IP)
+- Source Port (Aapka browser port)
+- Destination IP (NLB ka Static IP)
+- Destination Port (Port 80)
+- Protocol (TCP)
+
+Jab aap IP 1 (13.206.59.8) hit karte hain: Uska ek specific mathematical hash banta hai, jo calculation ke mutabik hamesha Server B par hi land karega.
+
+Jab aap IP 2 (13.202.27.199) hit karte hain: Destination IP badal gayi, isliye naya hash bana jo strictly Server A par land karega.
+
+Jab tak aapka laptop ka IP aur browser port same hai, woh hash hamesha fix rahega aur aapko lagatar ek hi server dikhega.
