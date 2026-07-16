@@ -836,3 +836,72 @@ Ye response bhi Firewall ke through wapas aata hai.
 Gateway Load Balancer GENEVE metadata ki madad se samajh leta hai ki ye response kis original client ke liye hai.
 
 Fir GWLB outer header hata kar response client ko bhej deta hai.
+
+
+<br>
+<br>
+
+### End-to-End Operational Example: Real-World Technical Flow
+
+Chaliye ek exact technical enterprise scenario se samajhte hain jahan ek internet user corporate web-application ko access kar raha hai aur traffic central firewall se inspect ho raha hai.
+
+**Scenario Specifications**:
+- Client Machine IP: ```203.0.113.10```
+- AWS Application Server ```IP: 10.0.1.50```
+- AWS GWLB Internal IP: ```192.168.1.10```
+- Firewall Instance IP: ```192.168.1.25```
+
+<br>
+
+**Step 1: Ingress Packet Arrival (At GWLBE)**
+
+Bahar ka user request initiate karta hai. Internet Gateway (IGW) par packet capture hota hai. Ingress routing rules use GWLBE (Endpoint) par divert karte hain.
+
+Packet State: ```[Source: 203.0.113.10]``` -> ```[Destination: 10.0.1.50]``` | ```[Payload: HTTP GET]```
+
+<br>
+
+**Step 2: AWS PrivateLink to GWLB**
+
+GWLBE bina encapsulation ke AWS PrivateLink architecture ke infrastructure level virtualization se is packet ko safe-channel par GWLB tak route karta hai.
+
+<br>
+
+**Step 3: GENEVE Encapsulation by GWLB**
+
+GWLB packet receive karta hai. Ab use yeh packet inspect karne ke liye Firewall Instance (```192.168.1.25```) ko forward karna hai. Yahan GWLB **GENEVE Encapsulation Engine** ko trigger karta hai:
+- **Outer UDP Packet Creation**: Source IP banta hai ```192.168.1.10``` (GWLB) aur Destination IP banta hai ```192.168.1.25``` (Firewall). Port set hota hai 6081.
+- **GENEVE Header Insertion**: Variable Option space mein GWLB do major metadata parameters inject karta hai:
+  - Attachment ID / VNI: Yeh identify karne ke liye ki yeh traffic kis specific consumer endpoint (GWLBE-id) se generate hua hai.
+  - Flow Cookie: Ek unique identification hash token jo stateful processing ke liye symmetric traffic path guarantee karta hai.
+ 
+Final Encapsulated Format: 
+```
+[Outer IP: 192.168.1.10 -> 192.168.1.25]
+[UDP: 6081] [GENEVE Header: GWLBE-ID, Cookie]
+[Original Inner Packet: 203.0.113.10 -> 10.0.1.50 | HTTP GET]
+```
+
+<br>
+
+**Step 4: Processing at Firewall Appliance**
+
+Firewall instance Port 6081 par packet intercept karta hai.
+- Firewall ka operating system system level driver level par GENEVE header ko parse (read) karta hai.
+- Woh metadata parameters (GWLBE-ID) ko memory context mein drop karta hai taaki use segment/customer policy ka pata chale.
+- Firewall inner packet (203.0.113.10 -> 10.0.1.50) ko extract karke use Deep Packet Inspection (DPI) engine mein pass karta hai bina koi Source NAT (SNAT) perform kiye.
+
+<br>
+
+**Step 5: Decapsulation and Return Loop**
+
+Inspection positive clear hone par, Firewall inner packet ko tamper nahi karta.
+- Firewall software back-encapsulation execute karta hai. Woh exact wahi GENEVE Header (vahi details aur cookie) dubara chipkata hai.
+- Return Packet Structure: ```[Outer IP: 192.168.1.25 -> 192.168.1.10] [UDP: 6081] [GENEVE Header] [Inner Packet]```.
+- Packet wapas GWLB ke network interface par land karta hai.
+
+<br>
+
+**Step 6: Final Delivery to Target**
+
+GWLB GENEVE outer envelope ko permanently strip (remove) kar deta hai. Ab system ke paas sirf raw original packet bacha hai. GWLB use GWLBE gateway routing ke through destination web server 10.0.1.50 par drops kar deta hai. Web server ko un-altered traffic milta hai, jahan direct Client IP visible hoti hai.
