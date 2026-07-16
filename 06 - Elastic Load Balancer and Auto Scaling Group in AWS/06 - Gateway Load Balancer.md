@@ -477,3 +477,362 @@ Packet wahi khatam. Application ko pata bhi nahi chalta.
 <br>
 <br>
 
+### Components of Gateway Load Balancer
+
+AWS Gateway Load Balancer (GWLB) ke poore architecture ko samajhne ke liye hamein yeh dekhna hoga ki iske components physically ya logically kahan deploy hote hain (Location) aur unka exact technical operation (Working) kya hota hai.
+
+Badi companies security ko centralize karne ke liye hamesha **Two-VPC Architecture** ka use karti hain:
+- **Application VPC (Consumer VPC)**: Jahan aapki real website ya database chal raha hota hai.
+- **Security VPC (Provider VPC)**: Jahan saare firewalls aur GWLB ka main setup hota hai.
+
+<br>
+
+**1. Gateway Load Balancer Endpoint (GWLBE)**:
+
+Yeh aapke application waale network (VPC) aur security waale network (VPC) ke beech mein ek bridge (pull) ka kaam karta hai.
+
+Kyuki application vpc aur security vpc dono alag hain, to application vpc se traffic ko secrity vpc mein bhejne ka kaam isi component ka hota hai. 
+
+**Kahan Laga Hota Hai (Location)**:
+- Yeh Application VPC ke public aur private subnets ke andar laga hota hai.
+- Yeh ek Elastic Network Interface (ENI) ki tarah aapke subnets mein dikhta hai.
+
+**Kaise Kaam Karta Hai**:
+- Jab internet se koi traffic Internet Gateway (IGW) par aata hai, toh Route Table ki settings ke mutabiq use sabse pehle is GWLBE par bheja jata hai.
+- GWLBE us traffic ko AWS PrivateLink (internal dark fiber network) ke zariye seedhe doosre VPC mein baithe GWLB ke paas transfer kar deta hai, bina internet par expose kiye.
+
+Example: 
+
+Aapka ek ```App-VPC``` hai jahan aapki website host hai, aur ek ```Security-VPC``` hai jahan saare firewalls hain. Aap App-VPC ke andar ek GWLBE banayenge. Jab bhi koi user website open karega, traffic pehle is GWLBE door ke andar enter karega, wahan se woh check hone ke liye doosre VPC ke firewall par chala jayega.
+
+<br>
+
+**2. Gateway Load Balancer (GWLB)**:
+
+Ye ek load balancer hota hai jo Gateway Load Balancer Endpoint se aaye hue traffic ko firewalls par distribute karta hai.
+
+**Kahan Laga Hota Hai (Location)**:
+- Yeh Security VPC ke ek dedicated subnet (GWLB Subnet) ke andar laga hota hai.
+
+**Kaise Kaam Karta Hai**:
+- Jaise hi GWLBE se traffic iske paas aata hai, yeh check karta hai ki iske piche kaun-kaun se firewall targets active hain.
+- Yeh incoming traffic ko leta hai aur use piche maujood multiple security firewalls par barabar baant (load balance) deta hai.
+- Yeh continuously check karta rehta hai ki saare firewalls sahi se kaam kar rahe hain ya nahi (Health Checks).
+- Agar traffic badhta hai, toh yeh auto-scaling ko trigger karke naye firewall instances add karwa deta hai.
+
+Example:
+
+Maal lijiye aapke web server par achanak 10,000 requests aa gayin. GWLB un saari requests ko pakdega aur unhe aapke backend mein chal rahe 3 alag-alag Palo Alto firewalls par 3333 requests ke hisab se distribute kar dega, taaki kisi ek firewall par load na aaye.
+
+<br>
+
+**3. Target Group / Security Appliances**:
+
+Target Group un virtual servers (EC2 instances) ka ek group hota hai jahan aapne third-party security softwares ya firewalls install kiye hote hain. GWLB hamesha isi Target Group ko traffic forward karta hai
+
+**Kahan Laga Hota Hai (Location)**:
+- Yeh bhi Security VPC ke andar hota hai, lekin aksar ek alag subnet (Data/Firewall Subnet) mein EC2 instances ke roop mein chal raha hota hai.
+
+**Kaise Kaam Karta Hai**:
+- Yeh instances GWLB ke Target Group mein registered hote hain.
+- Inka kaam asli inspection karna hai. Yeh dekhte hain ki packet ke andar koi virus, malware, ya hackers ka attack code toh nahi hai.
+- Agar packet safe hai, toh yeh use 'ALLOW' kar dete hain. Agar packet dangerous hai, toh yeh use wahin par 'DROP' (block) kar dete hain.
+
+Example: 
+
+Aapne Fortinet ya Check Point ke 3 EC2 instances banaye aur unhe ek Target Group mein daal diya. Jab GWLB packet bhejega, toh yeh instances packet ko deeply scan karenge. Agar kisi packet mein SQL Injection ka attack dikha, toh yeh appliance use wahin khatam kar dega, woh aapke main application server tak kabhi pahunch hi nahi payega.
+
+<br>
+<br>
+
+### GENEVE Protocol
+
+GENEVE (Generic Network Virtualization Encapsulation) protocol ek advanced Layer 3 network virtualization aur encapsulation technology hai. Ise IETF (Internet Engineering Task Force) ne design kiya hai, aur yeh modern software-defined networking (SDN) aur cloud infrastructure (jaise AWS Gateway Load Balancer) ka ek core foundation hai.
+
+GWLB ke context mein, GENEVE protocol ka primary validation tunnel endpoints ke beech bina original network payload ya packet headers ko modify kiye, variable metadata transport karna hai.
+
+GENEVE ka kaam hai. Original packet ko encapsulate karna. Matlab packet ke uper apni kuch information add karna. Aur Security Appliance tak safely bhejna. Inspection complete hone ke baad packet ko decapsulate kiya jata hai.
+
+<br>
+
+**GENEVE Protocol Kya Hai aur Iski Zaroorat Kyu Thi?**
+
+Maan lo tumhare AWS VPC mein ek Application chal rahi hai.
+
+Architecture.
+```
+Internet
+
+↓
+
+Gateway Load Balancer
+
+↓
+
+Firewall Appliance
+
+↓
+
+EC2 Application
+```
+Ab Client ek HTTP Request bhejta hai.
+
+Suppose.
+```
+Client IP
+
+43.205.10.15
+```
+Destination.
+```
+EC2
+
+10.0.1.25
+```
+Ab Gateway Load Balancer ko ye packet Firewall ke paas bhejni hai.
+
+<br>
+
+**Ab sawal**:
+
+Gateway Load Balancer packet ko Firewall tak kaise bheje? Kya original packet ko waise hi bhej de?
+
+Sunne mein sahi lagta hai. Lekin isme bahut badi problem hai.
+
+<br>
+
+**Problem kya hai?**
+
+Suppose Original Packet kuch aisi hai.
+```
+Source IP
+43.205.10.15
+
+Destination IP
+10.0.1.25
+```
+Firewall packet receive karti hai. Inspection karti hai.
+
+Ab Firewall ko packet wapas Gateway Load Balancer ko bhejni hai. Aur fir application wale EC2 tak pahunchani hai.
+
+Lekin Firewall ko kaise pata chalega. 
+- Ye packet kis Gateway Load Balancer se aayi thi?
+- Kaunsi session ki packet hai?
+- Return traffic kis path se bhejni hai?
+
+Original packet mein ye information hi nahi hai. Yaani packet ke saath extra metadata bhi bhejna zaruri hai.
+
+Isi problem ko solve karne ke liye **GENEVE protocol** bana. 
+
+<br>
+
+GENVE Protocol simply data packet ke uper ek GENEVE Header add kar deta hai.
+
+<br>
+
+**Sabse pehle ek normal packet dekhte hain**:
+
+Maan lo tumhare laptop ka IP hai.
+```
+43.205.10.15
+```
+Aur tum AWS mein ek Web Server access kar rahe ho.
+
+Web Server ka IP hai.
+```
+10.0.1.25
+```
+
+Browser request bhejta hai.
+```
+GET /login HTTP/1.1
+Host: example.com
+```
+
+Network layer par packet kuch aisi hogi.
+```
+Source IP      : 43.205.10.15
+
+Destination IP : 10.0.1.25
+
+Protocol        : TCP
+
+Destination Port: 443
+```
+Ye ek normal IP packet hai.
+
+<br>
+
+**Ab Gateway Load Balancer beech mein aa gaya**:
+
+Architecture.
+```
+Client
+
+↓
+
+Gateway Load Balancer
+
+↓
+
+Firewall
+
+↓
+
+Web Server
+```
+Ab Gateway Load Balancer ko ye packet Firewall tak bhejni hai. Lekin sirf original packet bhejna enough nahi hai.
+
+<br>
+
+**Kyun enough nahi hai?**
+
+Socho tum ek Courier Company ho.
+
+Tumhare paas sirf ye information hai.
+```
+Sender
+Rahul
+
+Receiver
+Puneet
+```
+Lekin Courier Hub ko aur bhi information chahiye.
+
+Jaise.
+- Tracking ID
+- Parcel Number
+- Priority
+- Delivery Zone
+
+Agar ye information nahi hogi. To Courier Company parcel ko correct location par nhi bhej payegi aur efficiently kaam nahi kar paayegi.
+
+Gateway Load Balancer ke saath bhi exactly yehi problem hai.
+
+<br>
+
+**GWLB ko extra information chahiye**:
+
+Gateway Load Balancer ko packet ke saath kuch additional information bhi bhejni hoti hai.
+
+Jaise.
+- Ye packet kis flow ki hai.
+- Kis Security Appliance ko bhejna hai.
+- Return traffic kis appliance se aani chahiye.
+- Session ka identifier kya hai.
+- Virtual network ki information.
+
+Ye information original IP packet mein nahi hoti.
+
+<br>
+
+**To Gateway Load Balancer kya karta hai?**
+
+Gateway Load Balancer yahan GENVE protocol ko use karta hai.
+
+Ye original packet ko change nahi karta. Ye us packet ke bahar ek naya wrapper laga deta hai.
+
+Isi wrapper ko GENEVE Header kehte hain.
+
+Step-1 Original Packet
+```
++--------------------------------------+
+| Source : 43.205.10.15                |
+| Destination : 10.0.1.25              |
+| TCP/443                              |
+| HTTP Data                            |
++--------------------------------------+
+```
+Ye packet waise ki waise rehti hai.
+
+Step-2 GWLB Encapsulation karta hai
+
+Ab Gateway Load Balancer packet ke bahar ek aur packet bana deta hai.
+
+Diagram.
+```
++----------------------------------------------+
+| Outer IP Header                              |
++----------------------------------------------+
+| UDP Header                                   |
++----------------------------------------------+
+| GENEVE Header                                |
++----------------------------------------------+
+| Original Packet                              |
+|  Source : 43.205.10.15                       |
+|  Destination : 10.0.1.25                     |
+|  TCP                                         |
+|  HTTP                                        |
++----------------------------------------------+
+```
+
+Dhyan do. Original packet ko touch bhi nahi kiya gaya. Uske bahar sirf 3 naye headers add hue.
+- Outer IP Header
+- UDP Header
+- GENEVE Header
+
+Isi process ko **Encapsulation** kehte hain.
+
+<br>
+
+**Firewall packet receive karti hai**:
+
+Ab Firewall ko packet milti hai. Wo sabse pehle dekhti hai.
+```
+Outer Header
+```
+Fir.
+```
+GENEVE Header
+```
+Usse pata chal jata hai.
+- Ye packet kis flow ki hai.
+- Kis session ki hai.
+- Kis virtual network se aayi hai.
+
+Ab Firewall outer wrapper hata deti hai.
+
+Wrapper hatane ko kya bolte hain **Decapsulation**.
+
+Wrapper ko hatate hi Original Packet mil gayi.
+
+<br>
+
+**Ab Firewall inspection karti hai**:
+
+Ab uske paas normal packet aa gayi.
+```
+GET /login HTTP/1.1
+```
+Ab Firewall check karti hai.
+
+Kya ye packet safe hai ya nhi?
+- Isme SQL Injection hai?
+- Cross Site Scripting hai?
+- Malware hai?
+
+Agar packet safe hai. Firewall usko coorect mark usse aage wapas GWLB ko behj deti hai.
+
+Agar packet dangerous ho? Suppose Hacker ne request bheji.
+```
+GET /login?id=' OR 1=1 --
+```
+Firewall packet inspect karegi. Aur bolegi. Ye SQL Injection Attack hai.
+
+Packet ko yahi drop kar do. Application tak jaane ki zarurat hi nahi.
+
+<br>
+
+**Return Traffic kaise aata hai?**
+
+Data packet firwall se inspection ke baad web server tak pahuch jati hai.
+
+Web Server request ka return response bhejta hai.
+```
+HTTP/1.1 200 OK
+```
+Ye response bhi Firewall ke through wapas aata hai.
+
+Gateway Load Balancer GENEVE metadata ki madad se samajh leta hai ki ye response kis original client ke liye hai.
+
+Fir GWLB outer header hata kar response client ko bhej deta hai.
