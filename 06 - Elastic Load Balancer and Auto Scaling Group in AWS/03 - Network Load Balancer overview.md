@@ -361,3 +361,70 @@ Response:
 ```
 Backend ---> NLB ---> Browser
 ```
+
+<br>
+<br>
+
+### NLB Proxy Protocol
+
+Jab koi user aapke NLB ke zariye aapke backend server se connect hota hai, toh servers ke paas source IP address ki jagah NLB ka apna internal IP address dikhne lagta hai. Is dikkat ko solve karne ke liye Proxy Protocol ka use kiya jata hai.
+
+<br>
+
+**1. Proxy Protocol Kya Hota Hai?**
+
+Proxy Protocol ek aisa mechanism hai jo NLB ko is baat ki ijaajat deta hai ki woh user ke original connection ki details (jaise Client IP address, Proxy IP address, aur Port numbers) ko ek chote se header ke roop mein TCP packet ke andar lapet kar backend server tak pahoncha sake. Isse aapke EC2 servers ko yeh pata chal jata hai ki real request kis user ne bheji thi, bhale hi beech mein NLB baitha ho.
+
+<br>
+
+**2. Yeh Kyu Zaruri Hai?**:
+
+Agar aap Proxy Protocol use nahi karte, toh kya hota hai:
+- User ka IP address ```1.2.3.4``` hai, aur woh NLB (```10.0.0.5```) se connect hota hai.
+- NLB us request ko aapke EC2 server (```10.0.0.100```) par forward kar deta hai.
+- Matlab NLB user ki IP ki jagah khud ki internal ip backend server ko bhejta hai.
+- Backend server ke logs mein request bhejne wale ka IP ```10.0.0.5``` (NLB ka IP) save hota hai.
+
+Nuksan: Aap user ki location track nahi kar sakte, security blocklists nahi laga sakte, aur na ki kisi user ko unke original IP ke hisab se identity verification de sakte hain.
+
+<br>
+
+**3. Example Se Samjhein (Real-World Scenario)**:
+
+Maan lijiye aap ek gaming application ya fir ek secure banking chat application chala rahe hain jo TCP protocol par kaam karti hai.
+
+Scenario Configuration:
+- Client (User) IP: ```203.0.113.50```.
+- NLB Internal IP: ```192.168.1.10```.
+- EC2 Backend Server IP: ```192.168.1.50```.
+
+Jab Proxy Protocol ON (Enabled) hota hai:
+- Jab client aapke app se connect karega, toh NLB network packet ke bilkul shuruat mein ek simple readable text line (header) jod dega. TCP data stream ke shuru hone se pehle aapke server ko yeh text milega:
+```
+PROXY TCP4 203.0.113.50 192.168.1.10 56324 80\r\n
+```
+
+Is line ka matlab kya hai?
+- ```PROXY```: Yeh batata hai ki yeh ek Proxy Protocol header hai.
+- ```TCP4```: Yeh batata hai ki IPv4 protocol ka use ho raha hai.
+- ```203.0.113.50```: Yeh Original Client IP hai (jo aapko chahiye tha).
+- ```192.168.1.10```: Yeh NLB ka IP address hai.
+- ```56324```: Yeh client ka source port hai.
+- ```80```: Yeh destination port hai jahan request aayi hai.
+
+Aapka web server (jaise Nginx, Apache, ya koi custom Node.js/Go app) is line ko padhta hai, client ka asli IP nikalta hai, aur uske baad aane wale normal application data ko process karta hai.
+
+<br>
+
+**4. Important Rules Aur Requirements**:
+
+Proxy Protocol use karne ke liye aapko do sabse main baaton ka dhyan rakhna padta hai:
+- **NLB Target Group Setting**: Aapko apne NLB ke Target Group ki attributes settings mein ja kar **Proxy Protocol v2** ko manually Enable karna hota hai.
+- **Backend Server Configuration**: Yeh sabse zaruri step hai. Agar aapne NLB par proxy protocol chalu kar diya lekin aapka backend server (Nginx/Apache) iske liye configured nahi hai, toh aapka server is header ko samajh nahi payega aur connection ko corrupt man kar reject (400 Bad Request ya connection reset) kar dega. Isliye aapko Nginx mein proxy_protocol directive ko listen port ke sath add karna padta hai.
+
+<br>
+
+**5. Application Load Balancer (ALB) Se Yeh Kaise Alag Hai?**
+
+Aapke dimaag mein sawal aa sakta hai ki ALB mein toh hum aisa kuch nahi karte.ALB ek Layer 7 (HTTP/HTTPS) load balancer hai, isliye woh HTTP headers ke andar X-Forwarded-For naam ka header automatically jod deta hai jisme client ka IP hota hai. Lekin NLB sirf network/TCP layer par kaam karta hai, wahan koi HTTP header nahi hota, isliye wahan Proxy Protocol hi akela rasta hai asli IP bachane ka.
+
