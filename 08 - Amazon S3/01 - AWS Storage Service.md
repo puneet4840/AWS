@@ -54,43 +54,100 @@ AWS ki lagbhag saari storage services in teen concepts ke upar build ki gayi hai
 
 ### 1. Block Storage
 
+AWS mein Block Storage ek aisi storage technology hai jo bilkul aapke laptop ya physical computer ki Hard Disk (HDD) ya Solid State Drive (SSD) ki tarah kaam karti hai. Isme data ko bade-bade raw pieces mein divide kiya jata hai, jinhe hum "Blocks" kehte hain. Har ek block ka apna ek alag address hota hai, aur isme koi metadata ya direct internet URL nahi hota.
+
 Block Storage mein poora data chhote-chhote equal-sized blocks mein divide kar diya jata hai.
 
-Operating System un blocks ko manage karta hai. Application ko ye nahi pata hota ki data kitne blocks mein divide hua ha
+<br>
+
+**Block Storage Kaise Kaam Karti Hai?**:
+
+Traditional Object Storage (S3) ki tarah isme puri file ek sath ek single unit bankar save nahi hoti.
+- **Data Ka Partition**: Jab aap koi badi file (jaise 1 GB ki video ya database file) Block Storage mein save karte hain, toh file system us data ko chote-chote chunks ya blocks (jaise 4 KB ya 8 KB ke blocks) mein tod deta hai.
+- **Independent Storage**: Yeh blocks poori drive par alag-alag jagah par store ho sakte hain. Storage controller ko pata hota hai ki kaun sa block kahan rakha hai.
+- **Ultra-Fast Access**: Jab aapko file read karni hoti hai, toh storage controller saare blocks ko bohot fast speed se aapas mein jor kar aapke samne file open kar deta hai. Is fast mechanism ki wajah se iski Latency (delay time) bohot kam hoti hai, aur IOPS (Input/Output Operations Per Second) bohot high hoti hai.
+
+<br>
+
+**Isko Kyu Use Karte Hain?**
+- **Operating System Install Karna**: Aap Amazon S3 ya EFS ke andar Windows ya Linux ka Operating System install nahi kar sakte. OS chalane ke liye aapko aisi drive chahiye jo direct server ke microprocessor se block-level par baat kar sake. Isliye har EC2 server ke sath ek Block Storage (EBS) jodi jati hai jo uski Boot Volume banti hai.
+
+- **High Performance Aur Speed**: Agar aapko aisi speed chahiye jahan micro-seconds mein data read aur write ho sake, toh Block Storage hi akela rasta hai. Yeh heavy applications ko bina ruke chalne mein help karti hai.
+
+- **Modify Single Blocks (Adha Data Badanna)**: Maan lijiye aapki 100 GB ki ek file hai aur aapne uske andar sirf ek line ka badlav (edit) kiya. Object Storage (S3) mein aapko poori 100 GB ki file fir se upload karni padegi. Lekin Block Storage mein sirf wahi chota sa 4 KB ka block badla jayega jisme woh line thi. Isse time aur resources dono bachte hain.
 
 Application sirf File System ke through read aur write karti hai. Block Storage ka primary objective hota hai.
 - **Very low latency**.
 - **High performance random read/write operations**.
 - **Operating System level integration**.
 
-Isi wajah se Block Storage databases aur operating systems ke liye best hoti hai. AWS mein Block Storage ka primary example hai **Amazon EBS**.
+<br>
 
-Aur temporary Block Storage ka example hai **EC2 Instance Store**.
+**AWS Mein Iske Do Main Types Kya Hain?**
 
+A. Amazon EBS (Elastic Block Store) - Persistent Network Drive:
+- Yeh ek virtual hard disk hai jo network ke zariye aapke EC2 server se connect hoti hai.
+- Yeh hamesha safe rehti hai (Persistent). Agar aapka EC2 server kharab ho jaye ya aap use stop kar dein, toh bhi aapka data EBS volume ke andar bilkul safe rahega. Aap is drive ko us server se hata kar kisi dusre naye server ke sath bhi jod sakte hain.
+
+B. EC2 Instance Store - Temporary Physical Drive:
+- Yeh drive network par nahi hoti. Jis physical server (hardware machine) par aapka EC2 chal raha hai, yeh drive usi machine ke andar physically lagi hoti hai.
+- Ye ek tarah se temporary storage hoti hai.
+- Kyunki yeh physically andar lagi hai, iski speed EBS se kahin zyada fast hoti hai. Lekin iska sabse bada nuksan yeh hai ki yeh Ephemeral (temporary) hoti hai. Agar aapne apna EC2 server stop kiya ya terminate kiya, toh is drive ka saara data hamesha ke liye delete ho jayega.
+
+<br>
 <br>
 
 ### 2. File Storage
 
-File Storage ka concept Block Storage se completely different hai.
+AWS mein File Storage ek aisi storage technology hai jo bilkul aapke local computer ya office ke standard folder structure ki tarah kaam karti hai. Isme data ko hierarchical format mein save kiya jata hai, jahan ek main folder (directory) ke andar sub-folders hote hain, aur unke andar aapki files hoti hain (jaise ```SharedDrive/Projects/2026/Report.pdf```).
+
+File Storage ki sabse badi khassiyat aur taqat yeh hai ki ise ek hi waqt par ek sath saikdo (hundreds) EC2 servers aapas mein connect karke share kar sakte hain.
 
 File Storage mein data files aur directories ke form mein organize hota hai.
 
-Yahan ek centralized file system hota hai. Multiple servers ek hi file system ko simultaneously mount kar sakte hain. Aur sabhi servers ek hi files dekhte hain.
+<br>
+
+**File Storage Kaise Kaam Karti Hai?**:
+- **Network Attached Storage (NAS)**: File Storage network par chalti hai. Yeh ek common shared network drive ki tarah hoti hai jo hawa mein (network ke zariye) chal rahi hoti hai.
+- **Standard Protocols**: Yeh storage alag-alag operating systems se connect karne ke liye standard network protocols ka use karti hai:
+  - Linux servers ke liye **NFS (Network File System)** protocol ka use hota hai.
+  - Windows servers ke liye **SMB (Server Message Block)** protocol ka use hota hai.
+
+Kyunki isko ek sath bohot saare servers use kar rahe hote hain, iske paas ek automatic locking system hota hai. Agar Server-A kisi file ko edit kar raha hai, toh yeh baki servers ko us file ko modify karne se tab tak rokta hai jab tak Server-A ka kaam poora na ho jaye, taaki data corrupt na ho.
 
 AWS mein File Storage ka primary example hai **Amazon EFS**.
 
-**Example**:
+<br>
 
-Suppose tumhare paas ek Auto Scaling Group hai. Usme 20 EC2 Instances chal rahi hain.
+**Isko Kyu Use Karte Hain?**
+- **Simultaneous Multi-Server Access**: Agar aapne ek aisa application banaya hai jo multiple servers par chal raha hai (jaise Auto Scaling Group mein), aur un sabhi servers ko ek hi data read ya write karna hai, toh File Storage sabse best option hai.
+- **Elastic Elasticity (Automatic Size Badhna)**: S3 ki tarah, isme bhi aapko pehle se dimaag nahi lagana padta ki mujhe 100 GB chahiye ya 500 GB. Jaise-jaise aap isme naye folders aur files dalte jayenge, iska size automatic badhta jayega. Jab aap files delete karenge, toh size automatic kam ho jayega. Aapko sirf utne ka hi paisa dena hai jitna data andar maujood hai.
+- **Lift-and-Shift Compatibility**: Agar aapki company apne purane office ke data center (On-Premises) se cloud par shift ho rahi hai, aur wahan pehle se standard shared network drives use hoti thi, toh aapko apna code badalne ki koi zaroorat nahi hai. Aap AWS par direct File Storage use karke apne application ko cloud par la sakte hain.
 
-Application ko ek shared configuration file read karni hai. Ya shared images use karni hain.
+<br>
 
-Agar har EC2 ke paas apni alag EBS Volume hogi. To har EC2 par file manually copy karni padegi. Aur agar image update hui. To 20 servers par update karna padega. Ye scalable approach nahi hai.
+**AWS Mein Iske Do Main Types Kya Hain?**
 
-AWS ne is problem ko solve karne ke liye Amazon EFS banaya. EFS ek centralized file system provide karta hai.
+AWS aapko operating system aur performance ke hisab se do major file storage options deta hai:
 
-Sabhi EC2 usi shared file system ko access karti hain. File ek jagah update hui. Automatically sabhi EC2 latest version dekhengi.
+A. Amazon EFS (Elastic File System) - Linux Ke Liye Perfect:
+- Yeh fully managed network file system hai jo Linux instances ke liye bana hai.
+- Isko setup karna bohot aasan hai. Yeh highly durable hoti hai aur multiple Availability Zones (alag-alag data centers) mein aapke data ko replicate karti hai taaki agar ek data center down bhi ho jaye, toh aapka shared folder hamesha chalu rahe.
 
+B. Amazon FSx - Windows Aur High-Performance Ke Liye:
+- Agar aap Linux use nahi kar rahe hain ya aapki requirement bohot zyada specialized hai, toh AWS FSx ka use hota hai. Iske kuch variants hote hain:
+  - FSx for Windows File Server: Agar aap Windows Server chala rahe hain aur aapko Windows Active Directory aur SMB permissions chahiye.
+  - FSx for Lustre: Agar aapko Machine Learning ya Big Data Analytics chalana hai jahan lakhon files ko ek sath super-fast speed par read karna hota hai.
+
+**Example 1: WordPress Multi-Server Website**:
+
+Maan lijiye aapki ek bohot badi news website hai jo WordPress par chal rahi hai. High traffic handle karne ke liye aapne 4 EC2 servers lagaye hain. Jab koi journalist website par ek nayi article ki image upload karta hai, toh woh image kisi ek server par save nahi honi chahiye, balki ek aisi common drive par save honi chahiye jise charo servers dekh sakein. Aise mein un charo servers ko ek Amazon EFS se connect kiya jata hai taaki koi bhi user kisi bhi server par aaye, use saari images barabar dikhein.
+
+**Example 2: Corporate Windows Home Directories**:
+
+Ek badi company apne hazaron employees ke liye Windows Virtual Desktops (AWS WorkSpaces) use karti hai. Company chahti hai ki har employee ka My Documents ya personal desktop folder ek secure jagah save rahe, aur agar employee apna virtual computer badle toh bhi uska data safe rahe. Aise mein company Amazon FSx for Windows ka shared folder backend mein setup karti hai.
+
+<br>
 <br>
 
 ### 3. Object Storage
