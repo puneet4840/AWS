@@ -167,3 +167,190 @@ AWS automatically:
 - Durability ensure karta hai.
 
 Isi wajah se S3 cloud storage ka foundation ban gaya.
+
+<br>
+<br>
+
+### Amazon S3 Ek Object Storage Service Hai
+
+Bahut log sirf itna yaad karte hain ki:
+- "S3 is an Object Storage."
+
+Lekin Object Storage ka actual matlab nahi samajhte. S3 Object Storage use karta hai. Iska matlab ye hai ki S3 data ko Objects ke form mein store karta hai.
+
+Ye traditional operating system ki tarah block storage ya file system use nahi karta. AWS S3 ke liye har uploaded file ek Object hoti hai.
+
+Chahe tum upload karo:
+- Image
+- Video
+- PDF
+- ZIP
+- HTML
+- Java Application
+- Database Backup
+- CSV
+- JSON
+- Log File
+
+AWS un sabko internally Object ke roop mein treat karta hai.
+
+<br>
+<br>
+
+### Object Kya Hota Hai?
+
+Object sirf file nahi hota.
+
+Object actually multiple information ka combination hota hai.
+
+Har Object ke andar generally teen major cheezein hoti hain.
+- Actual Data.
+- Metadata.
+- Object Key.
+
+<br>
+
+**1. Actual Data**:
+
+Ye file ka actual content hota hai.
+
+**Example**:
+
+Ek PDF upload hui.
+- Us PDF ka content actual data hai.
+
+Ek video upload hui.
+- Video ke bytes actual data hain.
+
+Ek image upload hui.
+- Us image ka binary data actual data hai.
+
+<br>
+
+**2. Metadata**:
+
+Metadata ka matlab hai: ```Data ke baare mein information```.
+
+Metadata object ka content nahi hota. Metadata object ko describe karta hai. Matlab metadata object ki information hoti hai.
+
+**Example**:
+
+Jaise S3 mein ek file upload hui, us file ki information metadata hoga, Jaise:
+- Content-Type
+- Last Modified Date
+- Object Size
+- Encryption Status
+- Owner
+- Storage Class
+- ETag
+- Custom Metadata
+
+Ye sari information Metadata hoti hai.
+
+AWS Metadata ka use object management ke liye karta hai.
+
+<br>
+
+**3. Object Key (Unique Key)**:
+
+Har object ka ek unique identifier hota hai. Isi unique identifier ko Key kehte hain.
+
+Ye key object ko internet par uniquely access karne ke liye use karte hain.
+
+**Example**:
+```
+documents/resume.pdf
+```
+Ye poori string object ki Key hai.
+
+Yahan:
+```
+documents/
+```
+folder nahi hai. Ye sirf object key ka prefix hai.
+
+<br>
+<br>
+
+### Bucket kya hota hai?
+
+S3 mein Data directly upload nahi hota. Sabse pehle ek Bucket create karni padti hai.
+
+Bucket ko tum logically ek Storage Container samajh sakte ho. Saare Objects kisi na kisi Bucket ke andar hi store hote hain.
+
+S3 mein data store karne ke liye aapko sabse pehle ek container banana padta hai jise Bucket kehte hain.
+
+Poore AWS mein aapke bucket ka naam completely unique hona chahiye, kyunki iske naam se hi ek global internet link banta hai.
+
+Example.
+```
+Bucket Name: "company-images"
+```
+
+Ab is Bucket ke andar.
+```
+profile1.png
+
+profile2.png
+
+banner.jpg
+
+logo.png
+```
+Ye saare Objects store honge.
+
+<br>
+<br>
+
+### Bucket globally unique kyun hota hai?
+
+S3 Bucket ka naam poori AWS duniya mein unique hota hai. Jab tum S3 mein ek bucket create karte ho to, us bucket ka naam poori duniya matlab aws par jitni bhi bucket bani hongi un sabme unique hona chaiye.
+
+Suppose:
+
+Tumne Bucket banayi.
+```
+company-images
+```
+Ab duniya ka koi aur AWS customer. Isi naam ki Bucket create nahi kar sakta.
+
+Reason:
+
+Har Bucket ka globally unique DNS endpoint hota hai.
+
+Example.
+```
+company-images.s3.amazonaws.com
+```
+
+Agar do Buckets ka naam same ho. To DNS conflict ho jayega. Matlab dono bucket ka dns name same ho jayega aur DNS same hone par dono buckets ke ander data access kiya ja sakta hai. Isliye AWS ne ye security lagai hai ki S3 bucket ka naam internet par unique hona chiaye. Jisse s3 bucket ke ander ke data ko internet par dns ke through access kiya ja sake.
+
+Isi wajah se Bucket Name globally unique hota hai.
+
+<br>
+<br>
+
+### Amazon S3 Ka Sabse Important Design Goal
+
+S3 ko design karte waqt AWS ke engineers ke paas kuch primary objectives the. Matlab S3 service kyu banai gayi.
+
+**1 - Unlimited Scalability**:
+
+Customer ko kabhi storage capacity plan na karni pade.
+
+**2 - High Durability**:
+
+Data hardware failure ke baad bhi survive kare.
+
+**3 - High Availability**:
+
+Storage service continuously available rahe.
+
+**4 - Low Operational Overhead**:
+
+Customer ko storage hardware manage na karna pade.
+
+**5 - Global Accessibility**:
+
+Internet ke through data securely access kiya ja sake. Isi design philosophy ki wajah se S3 aaj AWS ki sabse widely used service hai.
+
