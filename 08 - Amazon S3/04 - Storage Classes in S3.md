@@ -296,3 +296,169 @@ Lekin agar patient dobara aaye, to records turant available hone chahiye. Aise s
 
 Storage cost Standard-IA se bhi kam rakhna aur retrieval ko milliseconds mein possible banana. Isliye ye archive-type workloads ke liye suitable hai jahan access rare hai lekin wait karna acceptable nahi.
 
+Isliye ye archive-type workloads ke liye suitable hai jahan access rare hai lekin wait karna acceptable nahi.
+
+**Use Cases**:
+- Medical Records
+- Legal Documents
+- Media Archives
+- Compliance Data
+
+Ye data rarely access hota hai. Lekin jab access ho. To immediately mil jana chahiye.
+
+<br>
+<br>
+
+### 6. Amazon S3 Glacier Flexible Retrieval
+
+Is class ko pehle sirf **Amazon Glacier** kaha jata tha.
+
+Ye traditional archival storage hai. Iska objective maximum storage savings provide karna hai. Is class mein data retrieve karne ke liye wait karna padta hai. Retrieval option ke hisab se retrieval minutes se lekar hours tak lag sakta hai.
+
+**Example**:
+
+Company ko Backup sirf Disaster Recovery ke liye rakhna hai. Normal conditions mein Backup kabhi access nahi hota. Agar Server crash ho gaya. Tab Backup restore hogi. AWS ne socha. Agar customer wait kar sakta hai. To storage cost aur kam kar dete hain. Isi concept par Glacier Flexible Retrieval bani.
+
+Yahan storage bahut economical hoti hai. Lekin retrieval immediate nahi hota. Object restore karne mein minutes se lekar hours tak lag sakte hain, retrieval option ke hisaab se.
+
+**AWS retrieval delay kyu rakhta hai?**
+
+Kyunki AWS archive storage ko optimize karta hai. Ye continuously active storage maintain nahi karta jaise Standard ya IA classes karti hain. Result ye hota hai ki storage cost bahut kam ho jata hai.
+
+**Kab use karte hain?**
+- Compliance archives
+- Old project documents
+- Legal records
+- Historical logs
+- Audit data
+- Backup archives
+
+Ye wo data hota hai jo preserve karna zaruri hai, lekin immediately access karna zaruri nahi hota.
+
+<br>
+<br>
+
+### 7. S3 Glacier Deep Archive
+
+Ye AWS ki sabse cheapest Storage Class hai. Ye un data ke liye use hoti hai jo almost kabhi access nahi hota. Storage cost sabse kam hoti hai. Lekin retrieval sabse slow hoti hai. Retrieval mein generally kai ghante lag sakte hain.
+
+AWS ne ise un workloads ke liye design kiya hai jahan data ko sirf regulatory requirement ya legal compliance ke liye bahut saalon tak preserve karna hota hai. Yahan objective fast access nahi hai. Objective hai. Lowest possible storage cost.
+
+Iska purpose hai long-term preservation.
+
+Example:
+- Government records
+- Medical archives
+- Scientific research data
+- Financial compliance records
+- Old backups jo regulatory requirement ke liye decades tak rakhne padte hain
+
+**Storage cost itna kam kyu hota hai?**
+
+AWS assume karta hai ki shayad object ko kabhi retrieve hi na kiya jaye. Isi wajah se storage cost minimum hota hai. Lekin jab retrieval ki zarurat padti hai, tab process complete hone mein kai ghante lag sakte hain. Ye class un organizations ke liye ideal hai jahan storage cost ko minimize karna retrieval speed se zyada important hota hai.
+
+<br>
+<br>
+
+### Amazon S3 Express One Zone
+
+Ye relatively nayi Storage Class hai.
+
+AWS ne observe kiya ki kuch applications ko sirf low latency nahi, balki **extremely low latency** aur bahut high request rate chahiye.
+
+Jaise:
+- AI Training Pipelines.
+- High-performance Analytics.
+- Interactive Media Processing.
+
+Is requirement ke liye S3 Express One Zone introduce ki gayi.
+
+Ye single Availability Zone mein operate karti hai aur bahut high-performance object access provide karti hai.
+
+<br>
+<br>
+
+### Storage Classes ko yaad rakhne ka easiest production flow
+
+Socho ek Photo Upload Application hai.
+
+**Day 1**
+
+Customer ne photo upload ki. Photo continuously access ho rahi hai.
+
+↓
+
+**S3 Standard**
+
+-----------------------------------------
+
+**3 Mahine baad**
+
+Photo bahut kam access ho rahi hai.
+
+↓
+
+**S3 Standard-IA**
+
+-----------------------------------------
+
+**2 Saal baad**
+
+Photo sirf legal record ke liye rakhi hai.
+
+↓
+
+**Glacier Instant Retrieval** ya **Glacier Flexible Retrieva**l (business requirement ke hisaab se).
+
+----------------------------------------
+
+**10 Saal baad**
+
+Photo sirf compliance ke liye preserve hai.
+
+↓
+
+**Glacier Deep Archive**
+
+Ye transition manually bhi ho sakta hai aur **S3 Lifecycle Policies** ke through automatically bhi configure kiya ja sakta hai.
+
+<br>
+<br>
+
+### Ek important misconception
+
+Bahut log sochte hain.
+```
+S3 Standard
+
+↓
+
+S3 Glacier
+
+↓
+
+Alag Bucket
+```
+
+Ye galat hai.
+
+Storage Class change karne ka matlab Bucket change karna nahi hota.
+
+Object wahi Bucket ke andar rehta hai.
+
+Sirf us object ki Storage Class change hoti hai. Ye transition manually ya S3 Lifecycle Rules ke through automatically bhi ho sakta hai.
+
+<br>
+<br>
+
+### Storage Classes ka Comparison
+
+| Storage Class              | Access Pattern         | Retrieval Speed  | Availability Zones |            Storage Cost | Typical Use Case                   |
+| -------------------------- | ---------------------- | ---------------- | ------------------ | ----------------------: | ---------------------------------- |
+| S3 Standard                | Frequently accessed    | Milliseconds     | Multiple AZs       |                 Highest | Active application data            |
+| Intelligent-Tiering        | Unknown access pattern | Milliseconds     | Multiple AZs       | Automatically optimized | Mixed workloads                    |
+| Standard-IA                | Rarely accessed        | Milliseconds     | Multiple AZs       |     Lower than Standard | Important but infrequent data      |
+| One Zone-IA                | Rarely accessed        | Milliseconds     | Single AZ          |  Lower than Standard-IA | Re-creatable data                  |
+| Glacier Instant Retrieval  | Very rarely accessed   | Milliseconds     | Multiple AZs       |                   Lower | Archive with instant access        |
+| Glacier Flexible Retrieval | Archive                | Minutes to hours | Multiple AZs       |                Very low | Long-term archives                 |
+| Glacier Deep Archive       | Extremely rare access  | Hours            | Multiple AZs       |                  Lowest | Long-term compliance and retention |
