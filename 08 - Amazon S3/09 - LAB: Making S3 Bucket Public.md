@@ -74,3 +74,15 @@ Sirf BPA off karne se bucket public nahi hota; AWS by default sab kuch deny rakh
 Ab apko bucket public hai, koi bhi user apki bucket ka data browser par dekha sakta hai download kar sakta hai.
 
 DONE!!!
+
+<br>
+<br>
+
+### BPA Decision Matrix
+
+| Account-Level BPA | Bucket-Level BPA | Bucket Policy (Principal: *) | Final Status              |
+|:-----------------:|:----------------:|------------------------------|---------------------------|
+| ON                | OFF              | Allow                        | ❌ Blocked (Access Denied) |
+| OFF               | ON               | Allow                        | ❌ Blocked (Access Denied) |
+| ON                | ON               | Allow                        | ❌ Blocked (Access Denied) |
+| OFF               | OFF              | Allow                        | Publicly Accessible       |
