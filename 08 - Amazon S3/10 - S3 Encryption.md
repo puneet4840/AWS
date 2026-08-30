@@ -511,3 +511,137 @@ SSE-KMS isi problem ko solve karta hai. Ismein:
 - Key Management (banaana, delete karna, rotate karna, aur permissions set karna) ka kaam ek dedicated security service karti hai, jise AWS KMS (Key Management Service) kehte hain.
 - Hardware Security Modules (HSMs): KMS ke andar jo keys hoti hain, woh FIPS 140-3 Level 3 validated physical cryptographic hardware (HSMs) ke andar generate aur store hoti hain. In keys ko un hardware se bahar nikalna na-mumkin hota hai.
 
+<br>
+
+SSE-KMS ko use karne ke liye aap AWS ki server KMS ko S3 ke saath integrate kiya jata hai, jab jake keys manage hoti hain.
+
+Architecture:
+```
+Application
+     │
+     ▼
+    S3
+     │
+     ├──────────► AWS KMS
+     │                │
+     │                ▼
+     │           KMS Key
+     │
+     ▼
+Encrypted Object
+```
+Yahan S3 object ko encrypt karta hai, lekin encryption key management mein AWS KMS involved hota hai.
+
+<br>
+
+**KMS Kya Hai?**
+
+AWS Key Management Service (KMS) ek managed service hai jo cryptographic keys create, control aur manage karne ke liye use hoti hai.
+
+KMS tumhe zyada control deta hai.
+
+Tum:
+- Customer managed KMS keys create kar sakte ho.
+- Key policies define kar sakte ho.
+- IAM permissions control kar sakte ho.
+- Key rotation configure kar sakte ho.
+- CloudTrail ke through KMS API usage audit kar sakte ho.
+
+SSE-KMS mein encryption to S3 service karti hai lekin keys ka management S3 service na karke KMS service karti hai.
+
+<br>
+
+**Key Architecture: KMS Ke Andar Kya Hoti Hain Keys?**
+
+SSE-KMS ko samajhne ke liye aapko do tarah ki KMS keys ke baare mein pata hona chahiye:
+- AWS Managed Key (aws/s3): Yeh key AWS aapke liye automatic banata hai jab aap pehli baar SSE-KMS use karte hain. Yeh bilkul free hoti hai (par use karne ke API charges lagte hain). Iski key policy ko aap badal nahi sakte.
+- Customer Managed Key (CMK): Yeh woh asli weapon hai jise badi companies use karti hain. Yeh key aap khud create karte hain. Iska poora control aapke paas hota hai—aap taiyar karte hain ki kaun is key ko use kar sakta hai aur kaun nahi. Aap ise jab chahein disable ya delete bhi kar sakte hain.
+
+<br>
+
+SSE-KMS mein envelope encryption ka use hota hai.
+
+**Envelope Encryption Kya Hai?**
+
+Technical terms mein, data ko encrypt karne ke liye hume ek cryptographic key ki zaroorat hoti hai. Agar hum ek hi key se saara data encrypt karte rahein, ya phir key ko galat jagah store kar dein, toh poora system unsafe ho jata hai. Is problem ko solve karne ke liye janam hua Envelope Encryption ka.
+
+Envelope Encryption ka seedha niyam hai: Data ko encrypt karne ke liye ek alag chabi hogi, aur us chabi ko surakshit (secure) rakhne ke liye ek dusri master chabi hogi.
+
+Example:
+
+Maan lijiye aapke paas ek bohot hi kimti Vasiyat (Will Document) hai jise aap duniya se chhupa kar rakhna chahte hain.
+- The Data: 
+- DEK (Data Encryption Key): Yeh woh key hoti hai jiska use aapke actual data (jaise files, databases, photos) ko encrypt aur decrypt karne ke liye kiya jata hai.
+- KEK (Key Encryption Key): Yeh aapki Master Key hoti hai. Iska kaam sirf DEK (data key) ko encrypt (lock) karna hota hai. Yeh hamesha ek super secure jagah jaise KMS (Key Management Service) ya HSM (Hardware Security Module) ke andar rehti hai.
+
+<br>
+
+**1 - AWS Managed Keys**:
+- Kise milti hai?: Jab aap S3 bucket banate hain aur bina kisi mehnat ke KMS encryption select kar lete hain, toh AWS aapke liye background mein ek key bana deta hai. Iska naam default roop se ```aws/s3``` hota hai. Yeh keys AWS services (jaise S3) aapke account mein automatically banati hain
+- AWS is key ko har 3 saal (1095 din) mein automatically rotate (badal) deta hai.
+- Kiske liye sahi hai?: Un companies ya projects ke liye jo security toh chahti hain, lekin unhe bohot strict compliance (jaise banking rules) follow nahi karne aur jo extra paisa kharch nahi karna chahte.
+- Aap inki Key Policy ko change nahi kar sakte aur na hi inhein manually delete kar sakte hain.
+
+**2 - Customer Managed Keys (CMK)**:
+- Kise milti hai?: Is key ko aap khud KMS console mein ja kar "Create Key" par click karke banate hain. Isko aap apna manpasand naam (Alias) de sakte hain, jaise MyCompany-S3-Production-Key.
+- Management & Control: Is par aapka 100% full control hota hai. Aap ek-ek user ko chun kar permission de sakte hain ki "Rahul is key se data encrypt kar sakta hai, lekin decrypt nahi kar sakta." Aap jab chahein is key ko ek click se Disable (band) kar sakte hain, jisse poora data block ho jayega.
+- Kharcha (Cost): Iska ek fix monthly charge hota hai (lagbhag $1 per key/month), chahe aap ise use karein ya na karein.
+- Rotation: Isme aapke paas option hota hai. Aap automatic rotation on kar sakte hain, jo har 1 saal (365 din) mein key badal dega, ya fir aap manually bhi jab chahein badal sakte hain.
+- Kiske liye sahi hai?: Banking, Healthcare, ya bade enterprises ke liye jahan audit hota hai aur unhe har ek action par poora control chahiye hota hai.
+
+<br>
+
+**SSE-KMS kaise kaam karta hai?**
+
+Maan lijiye aap S3 bucket mein ek photo (data.jpg) upload kar rahe hain aur aapne SSE-KMS (Customer Managed Key) chuni hai.
+
+Phase A: Uploading & Encryption:
+- Aapka Request: Aapne S3 ko bola, "Meri yeh photo upload karo aur meri yeh KMS Key use karo."
+- S3+KMS Coordination: S3 seedha KMS ke paas jata hai aur bolta hai, "Mujhe is user ki KMS Key ke liye ek Data Key do."
+- KMS Generates Keys: KMS do cheezein banakar S3 ko deta hai:
+  - Plaintext Data Key: File encrypt karne ke liye.
+  - Encrypted Data Key: Wahi chabi jo KMS Root Key se encrypt ho chuki hai.
+- S3 Encryption: S3 us Plaintext Data Key ko uthata hai, aapki photo (data.jpg) ko encrypt karta hai, aur encrypt karte hi us Plaintext Chabi ko memory se turant delete kar deta hai.
+- Storage: S3 ab aapki Encrypt hui photo aur uske sath Encrypted Data Key ko bucket mein ek sath store kar deta hai.
+
+Phase B: Downloading & Decryption:
+- Aapka Request: Aapne click kiya "Download salary_structure.xlsx".
+- S3 Checks Permissions: S3 aapki file ke sath stored Encrypted Data Key (band lifafa) ko uthata hai aur use KMS ke paas bhejta hai: "Is lifafe ko apni Master Key se kholo."
+- KMS Decryption: KMS pehle check karta hai ki kya aapke paas is key ko use karne ki permission hai? Agar Haan, toh KMS us lifafe ko kholkar Plaintext Data Key wapas S3 ko de deta hai.
+- S3 Decrypts Data: S3 us Plaintext Data Key se aapki photo ko decrypt (un-hide) karta hai, aapko original photo download karwata hai, aur plaintext chabi ko phir se memory se delete kar deta hai.
+
+**Audit Trail (Kaun Dekh Raha Hai Yeh Sab?)**:
+
+Is poore process mein agar aapne AWS Managed Key use ki hoti, toh sab kuch chupchaap ho jata. Lekin kyunki aapne Customer Managed Key use ki hai, AWS background mein ek teesra department active rakhta hai jise AWS CloudTrail kehte hain.
+
+Jab bhi Phase A ya Phase B chalega, CloudTrail mein ek create hoga:
+```
+"Tareekh 30 August 2026 ko, Shaam 07:50 baje, User_Rahul ne S3 ke jariye Master Key 'MyCompany-S3-Key' ko hit kiya taaki file statement.pdf ko decrypt kiya ja sake. Status: SUCCESS."
+```
+
+<br>
+
+**SSE-KMS Ke Features**:
+
+- Granular Access Control: Aap S3 aur Encryption Key dono par alag-alag permissions laga sakte hain. Yeh double-lock security ki tarah kaam karta hai.
+- Comprehensive Auditing via CloudTrail: S3 mein data read/write karne ki har ek request jo KMS ke paas jaati hai, woh AWS CloudTrail mein record hoti hai. Aap exact track rakh sakte hain ki kis IAM User ya kis Role ne, kis samay, kis key ka use karke, kaun sa object decrypt kiya.
+- Manual and Automatic Key Rotation: Aap KMS ke andar set kar sakte hain ki aapki master key har saal (ya custom time par) automatically rotate ho jaye. Purana data purani key ke naye version se link rehta hai, aur naya data naye version se encrypt hota hai. Aap chahein toh manually purani key ko disable karke turant nayi key bana sakte hain.
+- Cryptographic Shredding: Maan lijiye aapka bank kisi desh se apna business band kar raha hai aur aapko compliance ke tehat unka saara data instant delete karna hai. Billion of files ko ek-ek karke delete karne mein ghante lag sakte hain. SSE-KMS mein aap bas us region ki KMS Key ko delete ya disable kar dijiye. Jaise hi key khatam, disk par rakha saara data instant useless junk ban jayega, kyunki use decrypt karne ka koi tarika poori duniya mein nahi bacha. Ise Cryptographic Shredding kehte hain.
+
+<br>
+
+**SSE-KMS Ke Nuqsaan ya Trade-offs**:
+
+Itni tight security ke sath kuch baatein dhyan mein rakhni hoti hain:
+- KMS Request Limits (Throttling Risk): KMS ki ek default limit hoti hai ki woh ek second mein kitni API requests (Encrypt/Decrypt) handle kar sakta hai (misal ke taur par 10,000 requests per second region ke hisab se). Agar aapka koi bohot bada Data Lake hai jismein ek sath lakhon requests aa rahi hain, toh KMS Throttling Error (HTTP 400 - SlowDown) de sakta hai.
+  - Solution: Iske liye AWS ne S3 Bucket Keys ka feature nikala hai, jo KMS par aane wale load ko 99% tak kam kar deta hai ek hi data key ko thodi der tak reuse karke.
+
+- Cost Factor (Kharcha): SSE-KMS free nahi hai.
+  - Har Customer Managed Key (CMK) ka $1 per month fix charge hota hai.
+  - Har 10,000 KMS API requests par approx $0.03 ka charge lagta hai. Agar aapka application din mein crore-o baar S3 se files read/write karta hai, toh aapka KMS ka bill bohot bada ho sakta hai.
+ 
+<br>
+<br>
+
+**3 - SSE-C (Server-Side Encryption with Customer-Provided Keys)**:
+
