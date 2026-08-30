@@ -645,3 +645,88 @@ Itni tight security ke sath kuch baatein dhyan mein rakhni hoti hain:
 
 **3 - SSE-C (Server-Side Encryption with Customer-Provided Keys)**:
 
+SSE-C ka full form hai Server-Side Encryption with Customer-Provided Keys.
+
+SSE-C ka matlab hai.
+- Customer encryption key khud provide karta hai.
+
+AWS object ko encrypt karta hai. Lekin encryption key permanently store nahi karta.
+
+SSE-C ka simple matlab hai: Data ko encrypt/decrypt karne ka poora kaam AWS S3 ka server karega, lekin encryption Key 100% aapki hogi. AWS aapki chabi ko kabhi bhi apne paas save nahi karega. Aap AWS ko encryption aur decryption ke liye key provide karoge jisse AWS data ko encrypt karke store karega aur aapne dene se pehle data ko decrypt karega.
+
+Maan lijiye aap ek aisi highly confidential organization hain jo AWS par trust toh karti hai apna data store karne ke liye, par apni encryption keys par AWS ko bilkul hath nahi lagane dena chahti. Aise scenario ke liye SSE-C banaya gaya hai.
+
+<br>
+
+**SSE-C Ka Core Philosophy Kya Hai?**
+
+SSE-S3 aur SSE-KMS mein AWS ke paas aapki encryption keys kisi na kisi roop mein store rehti thi. Lekin SSE-C mein philosophy badal jaati hai:
+- Storage AWS Ka, Key Aapki: Amazon S3 aapke data ko encrypt aur decrypt toh karega (isliye yeh Server-Side encryption hai), lekin encryption ke liye jo key use hogi, woh AWS ke paas kabhi bhi store nahi hogi.
+- Zero Trust Model: AWS ke bade se bade admin ya software engineer ke paas bhi aisa koi tarika nahi hai jisse woh aapki file dekh sakein, kyunki unke pure data center ya system mein aapki encryption key kahi save hi nahi hoti.
+- Aapki Zimmedari (High Risk): Agar aap apni encryption key kho dete hain, toh AWS ke paas bhi koi master-key ya back-door nahi hai jisse aapka data wapas mil sake. Data hamesha ke liye permanently lost ho jayega.
+
+<br>
+
+**Architecture aur Workflow**:
+
+SSE-C poori tarah se HTTPS Headers par chalta hai. Jab bhi aap S3 ke sath koi transaction (Upload ya Download) karte hain, toh aapko request ke sath apni encryption key ko cryptographic headers mein bhejni padti hai.
+
+```
+[ Aapka Safe Application Server ] -- (1) File + Raw Encryption Key via HTTPS --> [ Amazon S3 Memory ]
+      (Key stored locally)                                                                 |
+                                                                              (2) Encrypts data in RAM
+                                                                                           |
+                                                                                           v
+[ S3 Hard Disk ] <-------- (3) Stores Encrypted File + MD5 Hash of Key <-------------------+
+                             (Deletes raw key from RAM instantly)
+```
+
+ Data Upload (PutObject Request):
+ - Jab aap apne application se S3 mein koi file upload karte hain, toh aapko HTTP/HTTPS request ke headers mein teen zaroori parameters bhejne hote hain:
+   - ```x-amz-server-side-encryption-customer-algorithm```: Isme aap batate hain ki aap kaun sa algorithm use kar rahe hain (S3 sirf AES256 standard ko support karta hai).
+   - ```x-amz-server-side-encryption-customer-key```: Isme aap apni 256-bit, base64-encoded encryption key bhejte hain.
+   - ```x-amz-server-side-encryption-customer-key-MD5```: Yeh us key ka MD5 hash hota hai, jisse S3 verify karta hai ki key raste mein corrupt toh nahi hui.
+- S3 Ka Action:
+  - Amazon S3 ko jab yeh request milti hai, toh woh aapki raw key ko temporary apni volatile memory (RAM) mein dalta hai. Fir aapke data ko encrypt (readable format se unreadable format mein convert) karta hai, S3 encrypted file ko hard disk par save kar deta hai. Uske sath metadata mein sirf key ka MD5 hash save karta hai (asli key nahi). Iske turant baad, S3 apni RAM se aapki asli key ko permanently wipe out (clear) kar deta hai.
+ 
+Download Process (GET Request):
+- Kyunki S3 ke paas data ko wapas normal karne (decrypt karne) ka koi zariya nahi hai, isliye jab aapko woh file download karni hogi, Aapko dobara wahi exact teen headers (Algorithm, Key, aur Key-MD5) download request ke sath bhejne honge.
+- The Verification: S3 aapki bheji hui key ka MD5 hash nikalta hai aur file ke sath save kiye gaye MD5 hash se match karta hai.
+- Decryption: Agar hash match ho jata hai, toh S3 aapki key ko RAM mein lekar file decrypt karta hai aur aapko plaintext file de deta hai. Phir se, key RAM se mita di jaati hai.
+- The Failure Mode: Agar aapne download request mein key nahi bheji, ya galat key bheeji, toh S3 direct HTTP 403 Forbidden ya InvalidRequest error throw kar dega. S3 khud bhi us file ko nahi padh sakta.
+
+<br>
+
+**SSE-C Ke Fayde**:
+
+- Keys 100% aapke control mein hain. AWS ke infrastructure par aapka data aane ke baad bhi key ka malik kaun hai, iska koi sawal hi nahi rehta.
+- SSE-KMS ke muqable ismein koi AWS KMS ka kharcha nahi hota. Aap chahe crore-o requests marein, AWS aap se encryption ka ₹1 bhi extra nahi lega, kyunki infrastructure key management ka aap apna use kar rahe hain.
+- Yeh option un sabhi companies ke liye lifesaver hai jinhe strict data sovereignty compliance laws (jaise sovereign cloud acts ya strict national defense protocols) follow karne hote hain.
+
+<br>
+
+**SSE-C Ka Sabse Bada Risk Factor (The Single Point of Failure)**:
+
+SSE-C ka use karte waqt poori responsibilty aur accountability customer ki hoti hai.
+- No Backup Management: AWS aapki key ko save nahi karta, isliye agar aapki application ke database se ya aapke system se woh key delete ho gayi, toh AWS Support Team bhi aapka data recover nahi kar sakti. Woh data hamesha ke liye ek useless junk file ban kar S3 mein pada rahega.
+- Key Rotation: Agar compliance ke mutabik aapko har 90 din mein encryption keys badalni (rotate karni) hain, toh aapko khud purani key se data download karke, nayi key se use dobara upload karna padega. AWS isme koi automatic rotation support nahi deta.
+- HTTPS (Encryption in Transit) is Mandatory: Kyunki aap har request ke sath apni asli chabi S3 ko bhej rahe hain, isliye HTTPS (SSL/TLS) ka use compulsory hai. Agar aap HTTP par request bhejenge, toh S3 request ko reject kar dega taaki raste mein koi chabi chura na sake.
+
+<br>
+
+**Yeh Option Kab Use Kiya Jata Hai? (Real-World Use Cases)**:
+
+Aap sochenge ki itna risk aur jhanjhat kyun uthana, jab SSE-S3 aur SSE-KMS jaise automated options available hain? Iske peeche kuch strict corporate aur legal reasons hote hain:
+- Strict Compliance Regulations: Kuch sovereign countries ya defense/finance organizations ke strict local laws hote hain ki unka encryption material (keys) kisi bhi third-party cloud provider ke infrastructure ke andar enter ya save nahi hona chahiye.
+- On-Premises Key Infrastructure: Agar kisi badi enterprise company ne pehle se hi apna khud ka crores ka HSM (Hardware Security Module) ya Key Management appliance apne personal data center mein lagaya hua hai, toh woh usi existing setup ka use karke S3 ka data secure karna chahte hain.
+
+<br>
+<br>
+
+### 2. Client-Side Encryption
+
+Client-Side Encryption ka simple matlab hai: Data ko AWS S3 ke paas bhejne se PEHLE hi encrypt kar dena.
+
+Isme Amazon S3 ke servers ka encryption process mein koi role nahi hota. S3 ko sirf ek encrypted file (Ciphertext) milti hai, aur woh use waise hi store kar leta hai. S3 ko yeh tak nahi pata hota ki file ke andar kya data hai. Encryption aur Decryption ka saara heavy computer processing aapke apne server ya application par hota hai.
+
+
