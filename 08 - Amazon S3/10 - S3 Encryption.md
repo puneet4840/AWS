@@ -729,4 +729,49 @@ Client-Side Encryption ka simple matlab hai: Data ko AWS S3 ke paas bhejne se PE
 
 Isme Amazon S3 ke servers ka encryption process mein koi role nahi hota. S3 ko sirf ek encrypted file (Ciphertext) milti hai, aur woh use waise hi store kar leta hai. S3 ko yeh tak nahi pata hota ki file ke andar kya data hai. Encryption aur Decryption ka saara heavy computer processing aapke apne server ya application par hota hai.
 
+- Client must encrypt the objects locally before sending it to S3.
+- Client must also decrypt the objects locally after retrieving it from S3.
 
+<br>
+
+**Client-Side Encryption Kaise Kaam Karta Hai?**
+
+Iska workflow do tariko se manage kiya jata hai, is baat par nirbhar (depend) karte hue ki aap apni cryptographic keys ko kahan rakhna chahte hain. Matlab user apni keys kaha rakhna chta hai.
+
+**Option A: Using AWS KMS (Key Management Service)**:
+
+Is tarike mein, keys AWS KMS ke paas rehti hain, lekin encryption aapke server par hota hai.
+- Requesting Key: Aapka application AWS KMS ko bolta hai ki mujhe ek temporary ```Data Key``` do.
+- KMS Response: KMS aapko do cheezein bhejta hai—ek ```Plain-text Data Key``` aur ek ```Encrypted Data Key```.
+- Local Encryption: Aapka application us Plain-text Data Key ka use karke aapki file ko encrypt kar deta hai. Iske turant baad aapka application us plain chabi ko memory se delete kar deta hai.
+- S3 Upload: Ab aapka application encrypted file aur us Encrypted Data Key ko ek sath S3 bucket mein upload kar deta hai.
+
+**Option B: Using a Master Key in Your Own Application (Customer-Managed)**:
+
+Is tarike mein AWS ka koi lena-dena nahi hota. Aapka poora control hota hai.
+- Local Key Generation: Aapke application ke paas pehle se ek Master Key hoti hai (jaise aapke apne data center mein stored).
+- Local Encryption: Aapka code khud ek temporary data key generate karta hai, file ko encrypt karta hai, aur us temporary key ko apni Master Key se encrypt kar deta hai.
+- S3 Upload: Encrypted data ko S3 mein bhej diya jata hai. AWS ko sirf ek unreadable file dikhti hai.
+
+**Data Wapas Kaise Milta Hai? (Decryption Workflow)**:
+
+Jab aapko S3 se file wapas chahiye hoti hai:
+- Aapka application S3 se us encrypted file ko download karta hai.
+- Kyunki file encrypted hai, aapka application use direct open nahi kar sakta.
+- Aapka application local Master Key ya AWS KMS ka use karke us file ke sath aayi temporary key ko unlock (decrypt) karta hai.
+- Us unlocked temporary key se aapki main file aapke server par wapas normal (readable) ho jaati hai.
+
+<br>
+
+**Client-Side Encryption Ke Fayde**:
+
+- Ultimate Security (Zero-Trust): Agar koi hacker S3 ka poora control bhi haasil kar le, tab bhi woh aapka data nahi padh sakta, kyunki data ko unlock karne ka code aur key aapke server par hai.
+- End-to-End Cryptographic Security: Data internet par (in transit) aur hard disk par (at rest) dono hi jagah continuously secure rehta hai. Man-in-the-middle attacks ka koi khatra nahi hota, chahe network kitna bhi insecure ho.
+- Compliance: Yeh un industries (jaise military, high-finance, ya healthcare) ke liye perfect hai jahan strict rule hota hai ki cloud provider par bilkul bharosa nahi kiya ja sakta.
+
+
+**Client-Side Encryption Ke Nuksan**:
+- Management Overhead: Cryptographic keys ko surakshit rakhna aur manage karna poori tarah aapki zimmedari hai.
+- Heavy Computational Burden on Client: Encryption aur decryption ek mathematically heavy process hai. Agar aapka client application har ek second mein hazaron files upload/download kar raha hai, toh aapke local servers ka CPU usage 90% tak ja sakta hai, kyunki encryption ka saara load ab AWS par nahi, aapke servers par hai.
+- No AWS Features: Kyunki S3 ke paas sirf encrypted data hota hai, isliye aap S3 ke in-built features jaise S3 Select (file ke andar search karna) ya Object Lifecycle Management (data contents ke hisab se rules lagana) ka use nahi kar sakte.
+- Code Complexity: Developers ko normal AWS API calls (s3.putObject) ki jagah specialized cryptographic clients initialize karne padte hain, jisse debugging aur code maintenance mushkil ho jaati hai.
