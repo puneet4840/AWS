@@ -327,3 +327,73 @@ Maan lijiye humne ```invoice.txt``` wale bucket ko Suspend kar diya. Iske baad b
 - Purane Versions Ka Kya Hoga? Jo versions versioning ON rehte waqt ban chuke the, wo waise ke waise hi bucket mein safe rahenge aur unka paisa lagta rahega.
 - Naya Upload Karne Par Kya Hoga? Bucket suspend hone ke baad agar aap koi naya badlav upload karte hain, to S3 use koi random ID nahi deta. S3 uski Version ID ko hamesha ```null``` set karta hai.
 - Overwrite in Suspended State: Agar bucket suspend hai, aur aapne null ID wali file ke upar dobara same naam se file upload ki, to ab S3 purani null ID wali file ko overwrite (permanently delete) kar dega aur nayi file ko null ID de dega.
+
+
+<br>
+<br>
+
+### S3 Versioning Storage and Cost
+
+S3 mein versioning on karne ke baad storage kaise calculate hoti hai aur aapka bill kaise banta hai.
+
+**1. Core Rule: "Har Version Ek Alag Object Hai"**:
+
+AWS S3 ka sabse bada niyam yeh hai ki backend mein har ek version ko ek independent (alag) file ki tarah treat kiya jata hai.
+- No Delta Storage: Bohot se log sochte hain ki agar unhone 100 MB ki file mein sirf 1 MB ka badlav kiya, to S3 sirf us 1 MB ka extra charge lega. Yeh bilkul galat hai. S3 koi Git ya Database nahi hai jo sirf 'changes' (deltas) ko save kare. S3 poori ki poori file dobara save karta hai.
+- Full Size Charge: Agar aapne 100 MB ki file ko 5 baar overwrite kiya, to bucket mein 5 alag-alag versions banenge. S3 aapse 100 MB × 5 = 500 MB ka poora storage charge lega. Matlab har version ka alag charge lagta hai.
+
+<br>
+
+**2. Live Calculation Example (Aapka Bill Kaise Banega?)**:
+
+Aaiye ek real-world math example dekhte hain. Maan lijiye aap S3 Standard Storage Class use kar rahe hain, jahan average cost $0.023 per GB per month hai.
+
+Aapke paas ek video file hai: ```intro.mp4```.
+
+- Day 1 (Pehla Upload): Aapne 2 GB ki file upload ki.
+  - Bucket Storage: 2 GB.
+
+- Day 5 (Pehla Revision): Aapne video edit kiya aur same naam se dobara upload kiya. Nayi file ka size 2.5 GB hai.
+  - Backend status: 2.5 GB (Current Version) + 2 GB (Noncurrent Version).
+  - Bucket Storage: 4.5 GB.
+ 
+- Day 10 (Doosra Revision): Aapne fir se edit kiya aur upload kiya. Naye video ka size 3 GB hai.
+  - Backend status: 3 GB (Current Version) + 2.5 GB (Noncurrent) + 2 GB (Noncurrent).
+  - Bucket Storage: 7.5 GB.
+ 
+Mahine ke aakhir mein bill:
+
+Aapko lag raha hoga ki aapke paas toh sirf ek hi video (```intro.mp4```) hai jiska size 3 GB hai. Lekin AWS aapko poore 7.5 GB ka bill bhejega:
+```
+Total Cost = 7.5 GB * $0.023 = $0.1725
+```
+Agar yahi file 200 GB ki hoti aur uske 10 versions hote, to bill bina vajah bohot bada ho jata.
+
+<br>
+
+**3. Delete Markers Ka Cost Aur Storage Impact**:
+
+Maan lijiye aapne ```intro.mp4``` ko delete kar diya (bina version ID bataye, yaani normal delete).
+- Storage Size: Jaise humne pehle baat ki thi, S3 uske upar ek Delete Marker bitha dega. Delete Marker ka khud ka size 0 bytes hota hai.
+- Cost Impact: Delete Marker ka koi paisa nahi lagta. LEKIN, uske neeche jo teen purane versions (7.5 GB) chhupe baithe hain, wo delete nahi hue hain!
+- The Trap: File delete karne ke baad bhi aapka 7.5 GB ka storage charge lagta rahega jab tak aap "Show Versions" mein jaakar un purane teeno versions ko Permanently Delete nahi karte. Yeh sabse bada reason hai kyun logo ka S3 bill unki umeed se zyada aata hai.
+
+<br>
+
+**4. Storage Classes Ka Paisa (Current vs Noncurrent)**:
+
+S3 mein alag-alag (Storage Classes) hote hain—kuch mehnge aur fast, kuch saste aur slow. Versioning mein aap dono ke liye alag-alag classes chun sakte hain:
+- Current Versions (Mehanga Storage Class): Kyunki latest file ko aapka application bar-bar read karta hai, isliye ise S3 Standard mein rakha jata hai, jahan storage cost thodi zyada hoti hai par access fees zero hoti hai.
+- Noncurrent Versions (Sasta Storage Class): Jo purane versions hain, unhe koi roz-roz nahi dekhta. Wo sirf backup ke liye hain. Isliye unhe S3 Standard-IA (Infrequent Access) ya S3 Glacier mein bhej diya jata hai, jahan storage ki keemat 70% se 90% tak kam ho jaati hai.
+
+<br>
+<br>
+
+### Ek Aur Chhupa Hua Charge: Multipart Upload Garbage
+
+S3 mein jab aap koi badi file (jaise 5 GB se upar) upload karte hain, to S3 use chhote-chhote tukdon mein todkar upload karta hai, jise **Multipart Upload** kehte hain.
+- Agar upload ke beech mein aapka internet toot gaya ya upload fail ho gaya, to wo aadhe-adhure tukde bucket mein hi fase reh jaate hain.
+- Agar versioning ON hai, to wo fase hue tukde bhi storage gherte hain aur unka paisa lagta rehta hai, jabki wo file aapko console par dikhayi bhi nahi deti.
+
+**Solution**: Lifecycle rule mein hamesha ek option select karna chahiye: "Delete expired object delete markers or incomplete multipart uploads".
+
