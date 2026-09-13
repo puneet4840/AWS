@@ -314,6 +314,42 @@ Kya nuksan hua? Kyunki file Standard-IA mein sirf 10 din rahi (jabki limit 30 di
 <br>
 <br>
 
+### S3 lifecycle one directional hota hai
+
+S3 lifecycle waterfall model ko follow karta hai. S3 Lifecycle rules ka "One-Directional" (ek-tarfa) hone ka matlab hai ki data humesha saste storage class ki taraf hi aage badhta hai. Object ko ek baar niche ke tier mein bhej diya to wapas uper ke tier mein nhi aa sakta.
+
+**Storage Classes ka Ek Sequence (Order) hota hai**:
+
+AWS S3 mein storage classes ka ek order hota hai, jismein upar se niche jaane par cost kam hoti jaati hai aur data access speed/retrieval time badhta jaata hai:
+- S3 Standard (Sabse mehenga, sabse fast).
+- S3 Standard-IA (Kam mehenga, thoda slow).
+- S3 One Zone-IA (Aur sasta).
+- S3 Glacier Flexible Retrieval (Bohot sasta, archive ke liye).
+- S3 Glacier Deep Archive (Sabse sasta, sabse slow).
+
+**"One-Directional" Kaise Kaam Karta Hai?**
+
+Jab aap Lifecycle rule banate hain, to aap data ko sequence mein niche (saste tiers ki taraf) bhej sakte hain. Jaise:
+- ```S3 Standard ➡️ S3 Standard-IA ➡️ Glacier Deep Archive ➡️ Expiration (Delete)```.
+- Yeh raasta One-Way Street ki tarah hai. Ek baar jab koi object niche wale saste tier (jaise Glacier) mein chala gaya, to S3 Lifecycle rule ke paas aisa koi feature nahi hai jo us object ko automatic wapas upar S3 Standard mein le aaye.
+
+**Ek Real Example Se Samjhein**:
+
+Maan lijiye aapne ek rule banaya: "Upload hone ke 30 din baad file ko Glacier mein bhej do.
+- Day 31: File Glacier mein chali gayi.
+- Day 32: Achanak aapko us file ki bohot zyada jarurat pad gayi aur aapne use manually Restore kiya aur lagatar 5 din tak use download aur read karte rahe (yani ab wo frequently access ho rahi hai).
+- S3 Kya Karega? S3 ka Lifecycle rule itna samajhdaar nahi hota ki wo dekh sake ki "Arre, yeh file to ab roz kaam aa rahi hai, chalo isko wapas S3 Standard mein bhej dete hain."
+- Kyunki yeh One-Directional hai, isliye wo file humesha ke liye Glacier mein hi fassi rahegi jab tak aap khud use manually command dekar (ya CLI/API se) permanent ```S3 Standard``` mein copy ya move nahi karte.
+
+**Ek Chota Sa Exception (Jo Is Rule Ko Todta Hai)**:
+
+Jaise ki humne pehle baat ki thi, S3 Intelligent-Tiering iska ekmatra exception hai. S3 Intelligent-Tiering "Bi-directional" (dono taraf) kaam karta hai. Agar koi file use nahi ho rahi to wo use niche (saste tier) bhej deta hai, aur jaise hi koi use access karta hai, wo use automatic upar (frequent tier) le aata hai.
+
+Lekin agar aap Pure S3 Lifecycle Rules use kar rahe hain, to wo strictly One-Directional hi rahengi.
+
+<br>
+<br>
+
 ### S3 Lifecycle Rule kya bucket level par lagta hai ya object level par?
 
 S3 Lifecycle rules humesha Bucket Level par lagaye (configure kiye) jaate hain, lekin unka action Object Level par apply hota hai.
