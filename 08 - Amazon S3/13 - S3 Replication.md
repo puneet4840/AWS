@@ -167,3 +167,126 @@ Replication ko properly chalne ke liye kuch zaroori rules aur requirements hoti 
 - **IAM Role**: S3 ko aapki taraf se data copy karne ki permission chahiye hoti hai, iske liye ek IAM Role banakar bucket se attach karna padta hai. Is role ke paas permission hoti hai ki woh source bucket se data padh (read) sake aur destination bucket mein data likh (write) sake.
 - **Asynchronous Process**: Yeh bilkul real-time (instant) nahi hota, par upload hone ke kuch hi seconds ya minutes ke andar data doosre bucket mein copy ho jata hai. Agar aapko guranteed time chahiye, to AWS S3 Replication Time Control (RTC) ka option deta hai jo 15 minutes ke andar 99.99% data copy karne ki guarantee deta hai.
 
+<br>
+<br>
+
+### Replication mein filters aur tags ka use
+
+Lifecycle Rules ki tarah replication mein bhi filtering important hai.
+
+Aap decide kar sakte ho ki:
+- "Bucket ke saare objects replicate karne hain ya sirf selected objects?"
+
+Filtering ke liye object key prefixes/tags jaise criteria use kiye ja sakte hain.
+
+Example:
+```
+Prefix = backups/
+```
+Then:
+```
+backups/db.sql
+backups/application.tar
+```
+replicate honge.
+
+Lekin:
+```
+temp/test.txt
+```
+replicate nahi hoga agar rule usse target nahi karti.
+
+<br>
+
+**Tags ke basis par replication**:
+
+Aap object tags ke basis par bhi replication scope define kar sakte ho.
+
+Example:
+```
+Environment=production
+```
+
+Agar rule production-tagged objects ko target karti hai, to matching objects destination bucket mein replicate ho sakte hain.
+
+Ye useful hai jab same bucket mein multiple types ka data ho.
+
+Example:
+```
+Object A
+Tag:
+Environment=production
+```
+```
+Object B
+Tag:
+Environment=development
+```
+Rule sirf:
+```
+Environment=production
+```
+ke liye configured hai. To Object A replicate hoga aur Object B nahi.
+
+<br>
+<br>
+
+### S3 Replication ka basic architecture
+
+Ek typical replication architecture:
+```
+                 AWS Region A
+              ┌─────────────────┐
+              │  Source Bucket  │
+              │                 │
+              │ object-1        │
+              │ object-2        │
+              │ object-3        │
+              └────────┬────────┘
+                       │
+                       │ S3 Replication
+                       ↓
+              ┌─────────────────┐
+              │ Destination     │
+              │ Bucket          │
+              │                 │
+              │ object-1        │
+              │ object-2        │
+              │ object-3        │
+              └─────────────────┘
+                 AWS Region B
+```
+
+Ab question aata hai:
+- S3 ko permission kaise milegi ki woh source bucket ke objects ko destination bucket mein copy kar sake?
+
+Yahan IAM Role important hota hai.
+
+Replication configuration ke andar S3 ko ek IAM role provide kiya jata hai.
+
+Conceptually:
+```
+S3
+ |
+ | Assume IAM Role
+ ↓
+Replication IAM Role
+ |
+ | Read source
+ | Write destination
+ ↓
+Destination Bucket
+```
+
+IAM role S3 ko required permissions provide karta hai.
+
+For example, S3 ko source side par objects read karne ki permission chahiye.
+
+Aur destination side par replicated objects create karne ki permission chahiye.
+
+Isliye replication architecture mein IAM role + bucket permissions bahut important hain.
+
+<br>
+<br>
+
+### S3 RTC (Replication Time Control)
