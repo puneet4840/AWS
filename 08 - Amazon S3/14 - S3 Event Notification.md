@@ -513,3 +513,15 @@ Isliye application ko idempotent design karna important hai.
 **6. Scenario**: A media archive system wants to process archived files automatically using Lambda when a Glacier restore completes.
 - Use S3 Event Notification to Lambda when Glacier restore event is generated.
 
+<br>
+<br>
+<br>
+
+## Exercise - S3 Event Notification
+
+- Create SNS topic and create email subscription.
+- SNS Topic Access Policy to allow S3 to send notification.
+- Check your email and confirm the subscription.
+- Create S3 event notification with SNS as target.
+- Upload an object into source bucket and wait for few seconds.
+- Verify if you have received an email.
