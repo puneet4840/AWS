@@ -160,3 +160,56 @@ Aapko bucket par ek Bucket Policy add karni padegi jo puri duniya ko aapke bucke
 }
 ```
 
+<br>
+<br>
+
+### Website ko Custom Domain Aur HTTPS par kaise Karte Hain?
+
+Jaisa ki maine pehle bataya, S3 ka apna website endpoint ```http://<bucket-name>.s3-website-<Region>.amazonaws.com``` se shuru hota hai, jo HTTP hota hai (Strictly HTTP). Aaj ke zamane mein browser HTTP websites ko "Not Secure" dikhate hain aur Google search ranking bhi down kar deta hai. Saath hi, aap nahi chahenge ki aapke customers ```http://<bucket-name>.s3-website-<Region>.amazonaws.com``` jaisa lamba URL browser mein daalke website open kare; aapko ```https://mycompany.com``` chahiye.
+
+Production mein S3 website ko host karne ke liye niche diya gaya standard architecture lagaya jata hai:
+```
+User ──> [Amazon Route 53 (DNS)] ──> [Amazon CloudFront (CDN + HTTPS)] ──> [AWS S3 Bucket]
+```
+
+**AWS Certificate Manager (ACM)**: Sabse pehle aap ACM se apni website ke liye ek Free SSL/TLS Certificate generate karte hain (```https://mycompany.com``` ke liye).
+
+**Amazon CloudFront (CDN)**: S3 bucket khud se SSL certificate handle nahi kar sakta. HTTPS enable karne ke liye aap CloudFront ka use karte hain. Aap S3 bucket ke aage CloudFront ko bitha dete hain. CloudFront ke paas yeh power hoti hai ki wo aapka SSL certificate accept kare aur users ko HTTPS (Secure Connection) deliver kare. CloudFront piche se data S3 se uthata hai aur use Edge Locations par cache bhi kar deta hai, jisse website ki speed 10 guna badh jaati hai.
+
+<br>
+<br>
+
+### S3 Website Hosting Ke Fayde (Benefits)
+
+**Zero Server Maintenance**: Aapko koi Operating System (OS) update nahi karna, koi security patch nahi lagana, aur server crash hone ka koi darr nahi hai. It is 100% serverless.
+
+**Infinite Auto-Scaling**: Agar aapki website par achanak se 10 logon ke bajaye 10 lakh (1 Million) log ek sath aa jayein, to aapka server crash nahi hoga. S3 background mein automatically scale ho jata hai aur bina kisi performance drop ke heavy traffic ko handle kar leta hai.
+
+**Super Cheap (Cost-Effective)**: Iska kharcha lagbhag na ke barabar hota hai. S3 aapse sirf storage space (approx $0.023 per GB) aur jitna data transfer out ho raha hai, sirf uska paisa leta hai. Agar aapki website choti hai, to ye AWS Free Tier ke andar bilkul muft (free) chal sakti hai.
+
+<br>
+<br>
+
+### S3 Website Hosting Ki Limitations (Kya Nahi Ho Sakta?)
+
+S3 website hosting bohot sasti aur achhi hai, par iski kuch strict limits hain jo aapko pata honi chahiye:
+
+**No Server-Side Code Execution**: Aap isme .php, .jsp, .asp, ya Node.js backend code run nahi kar sakte. S3 sirf file server hai, computational server nahi. Agar aapko login system, payment gateway, ya database query chalani hai, to aapko frontend JavaScript ke throw external APIs (jaise AWS Lambda, API Gateway, ya external databases) ko call karna padega (jise hum JAMstack Architecture kehte hain).
+
+**No Dynamic Configurations**: Aap runtime par server configuration (jaise .htaccess rules) badal nahi sakte, jo bhi rules honge wo S3 ke Routing Rules ke through hi manage karne honge.
+
+**No Default HTTPS**: Bucket URL directly secure lock (https://) nahi dikhata, uske liye CloudFront setup ka extra step zaroori ho jata hai.
+
+<br>
+<br>
+
+### Costing 
+
+S3 Static Website Hosting ka sabse bada aakarshan iska na ke barabar kharch (Cost) hai. Agar aap ek aam VPS (Virtual Private Server) ya hosting provider se server lete hain, to aapko har mahine $5 se $20 ka fixed rent dena padta hai, bhale hi aapki website par koi traffic aaye ya na aaye.
+
+S3 mein "Pay-as-you-go" (Jitna use karoge utna paisa) model hota hai:
+- **Storage Cost**: Agar aapki website ka total size (HTML+CSS+Images) sirf 50 MB hai, to aapko mahine ka mushkil se $0.001 (kuch paise) dena hoga.
+- **Data Transfer Out**: Jab koi user website dekhta hai, to data S3 se nikal kar uske browser tak jata hai. Har mahine ka pehla 100 GB Data Transfer Out internet par bilkul free hota hai, uske baad approx $0.09 per GB lagta hai.
+- **Requests**: Jab users aapki site par aate hain, to browser jitni GET requests bhejta hai files download karne ke liye (e.g., $0.0004 per 1,000 requests).
+- **AWS Free Tier**: Naye AWS accounts ko pehle 1 saal tak 5 GB storage aur limited requests bilkul muft milti hain, yaani aapki website lagbhag $0 cost par chal sakti hai.
+
