@@ -132,3 +132,27 @@ Maan lijiye aapne ek 1 GB ki video ka Pre-signed URL banaya aur uski expiry 2 di
 - **Short Expiry Time Raxhein**: URL ki expiry jitni kam ho sake utni rakhein (jaise 5 se 15 minutes). Isse user ke paas link share karne ka time nahi bachaega.
 - **CloudFront (CDN) Ka Use Karein**: Agar aapko bohot saare logo ko files download karwani hain, to S3 ke aage Amazon CloudFront lagayein. CloudFront par Pre-signed URL lagane se data transfer cost bohot kam ho jaati hai aur har mahine 1 TB (1,000 GB) tak ka data transfer free milta hai.
 
+<br>
+<br>
+
+### Pre-signed URL kaise generate karte hain
+
+File ko access ya download karne ka pre-signed url aws console se generate kar sakte hain, lekin agar file upload karne ke pre-signed url generate karna hai to usko AWS SDK (Software Development Kit) use karke generate karna hoga.
+
+AWS SDK se dono download aur upload dono ke pre-signed url generate ho jate hain. Lekin console se sirf download ka hi generate hota hai.
+
+<br>
+
+**Console se download karne ka pre-signed url generate karna**:
+
+Agar aap chahte hain ki aap kisi specific file ka download link ek custom expiration time (jaise 5 minutes, 1 hour, ya max 12 hours) ke sath banayein, to in steps ko follow karein:
+
+- AWS Management Console mein log in karein aur Amazon S3 open karein.
+- Apne Buckets ki list mein se us bucket par click karein jismein aapki private file save hai.
+- File ke path (folders) ke andar navigate karein aur us file (object) ke naam ke aage bane Checkbox par click karke use select kar lein.
+- Upper right corner mein aapko Actions ka ek dropdown menu dikhega, us par click karein.
+- Dropdown list mein se "Share with a presigned URL" option ko select karein.
+- Ek naya box open hoga. Wahan aapko Time interval choose karna hoga (e.g., Minutes ya Hours select karke number daalna hoga ki link kitni der mein expire ho jaye).
+- Settings select karne ke baad "Create presigned URL" button par click kar dein.
+- AWS screen par ek success message dikhayega aur aapko ek link milega. "Copy presigned URL" par click karke aap use kisi ke bhi sath share kar sakte hain.
+
