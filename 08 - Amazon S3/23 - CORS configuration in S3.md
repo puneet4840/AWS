@@ -113,6 +113,10 @@ Kyunki dono ke origins bilkul alag hain, isiliye jaise hi aapki React app S3 par
 
 S3 by default kisi bhi baahar ke origin ki JavaScript request ko block kar deta hai. Isi block ko tameez se hatane ke liye hum S3 bucket par CORS configured karte hain. CORS ke zariye hum S3 bucket ko batate hain ki: "Dekho S3, yeh meri hi frontend website hai, agar iski taraf se koi request aaye to gussa mat hona, use allow kar dena."
 
+**Note**:
+- CORS is browser only feature and hence not applicable when accessing S3 using cURL, postman, CLI, SDK, Lambda, APIs etc. 
+- Applicable when using Java Script, Presigned URL from browser, Accesing S3 static website etc.
+
 <br>
 <br>
 
